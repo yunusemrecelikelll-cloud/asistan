@@ -3,10 +3,21 @@
 Bilgisayardaki NOVA sunucusunun **yerel Apple istemcisi**. iPhone uygulaması
 ve Apple Watch uygulaması aynı çekirdeği paylaşıyor.
 
-> **Bu kod bu bilgisayarda derlenemedi.** Xcode yalnızca macOS'ta çalışıyor;
-> burada Mac yok. Kaynak eksiksiz yazıldı, sunucu tarafı ölçülerek doğrulandı,
-> ama **Swift derleyicisinden geçirilmedi ve cihazda çalıştırılmadı.** Aşağıdaki
-> adımlar bir Mac'te izlenmeli. Derleme hatası çıkarsa bana yapıştır, düzeltirim.
+> **Derleniyor, ama cihazda çalıştırılmadı.**
+>
+> Bu bilgisayarda Mac yok; Xcode yalnızca macOS'ta çalışıyor. Bu yüzden
+> derlemeyi GitHub Actions'ın macOS makinesinde yapıyoruz. Her itişte
+> iPhone ve Apple Watch hedefleri derleniyor ve paket testleri simülatörde
+> koşuyor — durum deponun üstündeki rozette görünüyor.
+>
+> Doğrulanan: kod derleniyor, tipler tutuyor, API'ler hedeflenen sürümlerde
+> var, 12 birim testi geçiyor.
+>
+> **Doğrulanmayan: cihazdaki davranış.** `AVAudioEngine`in gerçekten tampon
+> verip vermediği, `WatchConnectivity`nin mesaj sınırına çarpıp çarpmadığı,
+> AAC kodlamasının hızı, ses oturumu kesintileri, gerçek gecikme — hiçbiri
+> derleyicinin görebileceği şeyler değil. Bir iPhone'a kurulana kadar
+> "çalışıyor" demiyoruz.
 
 ## Neden Swift, neden Flutter değil
 
@@ -176,53 +187,65 @@ apple/
 
 `Ayarlar` yalnızca telefonda anlamlı — saat hiç okumuyor.
 
-## Mac'te kurulum
+## Derleme
 
-1. **Xcode projesi oluştur**
-   - Xcode → File → New → Project → iOS → App
-   - Product Name: `NovaTelefon`, Interface: SwiftUI, Language: Swift
-   - Kaydettiğin yere bu klasörü kopyala ya da klasörü olduğu gibi kullan.
+### GitHub'da (Mac gerekmeden)
 
-2. **Watch hedefi ekle**
-   - File → New → Target → watchOS → App
-   - Product Name: `NovaSaat`
-   - "Watch App for Existing iOS App" seçeneğini işaretle (NovaTelefon'u seç).
+`.github/workflows/apple.yml` her itişte çalışıyor:
 
-3. **Ortak paketi bağla**
-   - File → Add Package Dependencies → Add Local… → `apple/NovaPaylasilan`
-   - `NovaPaylasilan` kitaplığını **hem NovaTelefon hem NovaSaat** hedefine ekle.
+| Adım | Ne doğruluyor |
+|---|---|
+| Ortak paket — iOS | `NovaPaylasilan` iPhone için derleniyor |
+| Ortak paket — watchOS | aynısı saat için |
+| iPhone uygulaması | `NovaTelefon` + gömülü saat uygulaması |
+| Apple Watch uygulaması | `NovaSaat` |
+| Paket testleri | protokol ve WAV çözücü testleri, iOS simülatöründe |
 
-4. **Dosyaları hedeflere koy**
-   - `NovaTelefon/*.swift` → NovaTelefon hedefi
-   - `NovaSaat/*.swift` → NovaSaat hedefi
+Adımlar hata alsa da devam ediyor: derleme hatalarını teker teker bulmak
+yerine tek çalıştırmada hepsini görmek istiyoruz. İmza yok — amaç
+derleyiciden geçmek, mağazaya çıkmak değil.
 
-5. **Info.plist izinleri** (NovaTelefon ve NovaSaat, ikisine de)
+Elle tetiklemek için Actions sekmesinden **Run workflow**.
 
-   | Anahtar | Değer |
-   |---|---|
-   | `NSMicrophoneUsageDescription` | Nova ile konuşmak için mikrofon gerekiyor. |
-   | `NSLocalNetworkUsageDescription` | Ev ağındaki bilgisayarına bağlanmak için. |
-   | `NSBonjourServices` | `_http._tcp` |
+### Mac'te
 
-   Saat ağa hiç çıkmıyor ama mikrofon izni orada da gerekiyor.
+Xcode projesi depoda **tutulmuyor**; `apple/project.yml`den üretiliyor.
+`.xcodeproj` makine üretimi, birleştirmesi imkânsız bir XML — okunabilir
+bir tanım tutup ondan üretmek hem daha temiz hem de kurulum adımlarını
+belgelemekten kurtarıyor.
 
-6. **Arka planda ses** — NovaTelefon hedefi → Signing & Capabilities →
-   Background Modes → **Audio, AirPlay, and Picture in Picture** işaretle.
-   Bu olmadan telefon cebe girince Nova susuyor.
+```bash
+brew install xcodegen
+cd apple
+xcodegen generate
+open Nova.xcodeproj
+```
 
-7. **Şifresiz HTTP/WS** — bağlantı `ws://` (yerel ağ ve Tailscale, ikisi de
-   zaten özel ağ). NovaTelefon'un Info.plist'ine:
-   ```xml
-   <key>NSAppTransportSecurity</key>
-   <dict><key>NSAllowsLocalNetworking</key><true/></dict>
-   ```
+Bu kadar. Hedefler, dosya-hedef eşleşmeleri, `Info.plist` anahtarları
+(mikrofon izni, yerel ağ izni, Bonjour, arka planda ses, şifresiz ws://)
+ve saat uygulamasının telefona gömülmesi — hepsi `project.yml` içinde.
 
-8. **İlk çalıştırma** — telefon uygulamasını aç → yan bar → Ayarlar:
-   - Yerel ağ adresi: `192.168.1.X:8770` (bilgisayarın ev ağındaki adresi)
-   - Tailscale adresi: `100.x.y.z:8770`
-   - Parola: sunucudaki parola
+Cihaza kurmak için tek gereken imza: Xcode → hedef → Signing &
+Capabilities → kendi Apple hesabını seç. Ücretsiz hesap yeterli, uygulama
+yedi günde bir yeniden kurulmak ister.
 
-   **Saatte yapılacak bir şey yok** — telefon bağlanınca saat de çalışıyor.
+### İlk çalıştırma
+
+Telefon uygulamasını aç → yan bar → Ayarlar:
+
+- **Yerel ağ adresi:** `192.168.1.X:8770` (bilgisayarın ev ağındaki adresi)
+- **Tailscale adresi:** `100.x.y.z:8770`
+- **Parola:** sunucudaki parola (`telefon.ps1` yazdırıyor)
+
+**Saatte yapılacak bir şey yok** — telefon bağlanınca saat de çalışıyor.
+
+## Bilinen sınır
+
+**watchOS 10'da kulaklık mikrofonu kullanılmıyor.** `.allowBluetooth`
+(kulaklığın mikrofonunu da devreye alan HFP kipi) watchOS'ta ancak 11.0'da
+geldi. Hedefimiz watchOS 10 olduğu için koşullu ekliyoruz: 10'da ses
+kulaklıktan çalıyor ama mikrofon saatin kendisi oluyor, 11'de ikisi de
+kulaklıktan. Bunu ilk derlemede derleyici yakaladı.
 
 ## Sunucu tarafında ne değişti
 

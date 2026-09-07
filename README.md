@@ -1,5 +1,7 @@
 # Asistan
 
+[![Apple derleme](https://github.com/yunusemrecelikelll-cloud/asistan/actions/workflows/apple.yml/badge.svg)](https://github.com/yunusemrecelikelll-cloud/asistan/actions/workflows/apple.yml)
+
 Kişisel yapay zekâ asistanı — Claude Code projelerini yöneten sesli komuta
 merkezi. Ayrıca mentörlük, yaşam koçluğu ve 3D baskı atölyesi takibi.
 
@@ -20,7 +22,7 @@ devreye giriyor.
 backend/     FastAPI sunucusu (127.0.0.1:8770)
 frontend/    masaüstü arayüzü
 apple/       Swift — iPhone + Apple Watch
-testler/     398 test
+testler/     432 test (Python) + 12 (Swift)
 ```
 
 Android tarafı ayrı depoda:
