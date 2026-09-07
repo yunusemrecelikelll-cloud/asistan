@@ -104,9 +104,15 @@ jobs:
                 | grep -oE 'iPhone [0-9]+( Pro)?' | tail -1)
           echo "test simülatörü: ${SIM:-yok}"
           if [ -n "$SIM" ]; then
+            # Testleri projeden DEGIL paketin kendisinden
+            # calistiriyoruz. Bir SwiftPM paketi projeye bagimlilik
+            # olarak eklendiginde uretilen sema test eylemini
+            # icermiyor ("Scheme NovaPaylasilan is not currently
+            # configured for the test action"); paket dizinine
+            # dogrudan bakinca xcodebuild semayi kendisi kuruyor.
+            cd NovaPaylasilan
             calistir "Paket testleri ($SIM)" \
               xcodebuild test \
-                -project Nova.xcodeproj \
                 -scheme NovaPaylasilan \
                 -destination "platform=iOS Simulator,name=$SIM" \
                 $IMZASIZ
