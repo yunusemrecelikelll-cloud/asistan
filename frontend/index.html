@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
+<meta name="theme-color" content="#0e1116" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="NOVA" />
+<link rel="manifest" href="/manifest.json" />
+<link rel="apple-touch-icon" href="/statik/simge-192.png" />
+<title>NOVA</title>
+<link rel="stylesheet" href="/statik/style.css" />
+</head>
+<body>
+
+<aside id="yan">
+  <header class="yan-bas">
+    <div class="marka">
+      <svg class="nova-logo" viewBox="0 0 64 64" aria-hidden="true">
+        <defs>
+          <linearGradient id="nova-parlak" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#9cc4ff"/>
+            <stop offset="0.55" stop-color="#6ea8fe"/>
+            <stop offset="1" stop-color="#3d7ee0"/>
+          </linearGradient>
+        </defs>
+        <path fill="url(#nova-parlak)"
+              d="M32 4 C34 19 45 30 60 32 C45 34 34 45 32 60
+                 C30 45 19 34 4 32 C19 30 30 19 32 4 Z"/>
+        <path fill="url(#nova-parlak)" opacity="0.5"
+              d="M50 9 C51 15 55 19 60 20 C55 21 51 25 50 31
+                 C49 25 45 21 40 20 C45 19 49 15 50 9 Z"/>
+        <circle cx="32" cy="32" r="2.6" fill="#eaf2ff" opacity="0.9"/>
+      </svg>
+      <h1>NOVA</h1>
+      <span class="nokta" id="saglik-nokta"></span>
+    </div>
+    <button id="tara" class="ikon" title="Projeleri yeniden tara">⟳</button>
+  </header>
+
+  <div class="ozet" id="ozet"></div>
+
+  <div class="ara-kutu">
+    <input id="proje-ara" type="text" placeholder="Proje ara…" autocomplete="off" />
+  </div>
+
+  <nav id="proje-liste" class="proje-liste"></nav>
+
+  <footer class="yan-alt">
+    <button id="ayarlar-ac" class="metin-dugme">Ayarlar</button>
+    <span id="maliyet" class="maliyet"></span>
+  </footer>
+</aside>
+
+<main id="ana">
+  <header class="ana-bas">
+    <button id="menu" class="ikon menu-dugme" title="Projeler">☰</button>
+    <div>
+      <h2 id="baslik">Tüm projeler</h2>
+      <p id="alt-baslik" class="alt">Konuş, sor, komut ver.</p>
+    </div>
+    <div class="bas-aksiyon">
+      <label class="anahtar" title="Yanıtları sesli oku">
+        <input type="checkbox" id="sesli-yanit" />
+        <span>Sesli yanıt</span>
+      </label>
+      <button id="ozetle" class="metin-dugme" title="Tüm projelere ASISTAN-OZET.md yazdır">Tümünü özetle</button>
+      <button id="rapor" class="metin-dugme">Rapor</button>
+      <button id="temizle" class="metin-dugme">Temizle</button>
+    </div>
+  </header>
+
+  <nav id="sekmeler" class="sekmeler">
+    <button class="sekme etkin" data-sekme="nova">Nova</button>
+    <button class="sekme" data-sekme="bugun">Bugün</button>
+    <button class="sekme" data-sekme="plan">Plan</button>
+    <button class="sekme" data-sekme="projeler">Projeler</button>
+    <button class="sekme" data-sekme="atolye">Baskı</button>
+    <button class="sekme" data-sekme="yasam">Yaşam</button>
+    <button class="sekme" data-sekme="koc">Koç</button>
+    <button class="sekme" data-sekme="rapor">Rapor</button>
+    <button class="sekme" data-sekme="sohbet">Sohbet</button>
+    <span class="bosluk"></span>
+    <button id="bildirim-ac" class="ikon zil" title="Bildirimler">
+      <span aria-hidden="true">🔔</span>
+      <span id="rozet-bildirim" class="rozet gizli">0</span>
+    </button>
+  </nav>
+
+
+  <!-- ── Nova ──────────────────────────────────────────────────────── -->
+  <section id="sekme-nova" class="sekme-govde nova-govde">
+    <div class="kure-alan">
+      <canvas id="nova-kure" class="nova-kure"></canvas>
+      <div class="kure-durum">
+        <div id="kure-durum-yazi">Dinlemek için dokun</div>
+        <div id="kure-alt" class="alt">“Hey Nova” de, gerisini ben hallederim</div>
+      </div>
+    </div>
+
+    <div class="satir-aksiyon nova-aksiyon">
+      <button id="nova-dinle" class="birincil">Dinlemeye başla</button>
+      <button id="nova-yeni" class="metin-dugme">Yeni sohbet</button>
+    </div>
+
+    <div id="nova-akis" class="nova-akis"></div>
+  </section>
+
+  <!-- ── Bugün ─────────────────────────────────────────────────────── -->
+  <section id="sekme-bugun" class="sekme-govde gizli">
+    <div class="gun-bas">
+      <div>
+        <h3 id="bugun-tarih">Bugün</h3>
+        <p id="bugun-alt" class="alt">Program yükleniyor…</p>
+      </div>
+      <div class="karne" id="bugun-karne"></div>
+    </div>
+
+    <div id="siradaki" class="siradaki gizli"></div>
+
+    <div id="bugun-liste" class="gorev-liste"></div>
+
+    <div class="satir-aksiyon">
+      <button id="gorev-ekle-ac" class="ikincil">+ Görev ekle</button>
+      <button id="bugun-yenile" class="metin-dugme">Yenile</button>
+    </div>
+  </section>
+
+  <!-- ── Plan ──────────────────────────────────────────────────────── -->
+  <section id="sekme-plan" class="sekme-govde gizli">
+    <div class="gun-bas">
+      <div>
+        <h3 id="plan-baslik">Bu hafta</h3>
+        <p id="plan-alt" class="alt"></p>
+      </div>
+      <div class="karne" id="plan-karne"></div>
+    </div>
+
+    <div id="plan-cerceve" class="cerceve gizli"></div>
+
+    <div class="plan-arac">
+      <input id="plan-istek" type="text" autocomplete="off"
+             placeholder="Bu dönem için özel istek (isteğe bağlı) — örn. 3D baskıya ağırlık ver" />
+      <button id="plan-hafta" class="birincil">Haftalık plan yap</button>
+      <button id="plan-ay" class="ikincil">Aylık plan yap</button>
+    </div>
+
+    <div id="hafta-izgara" class="hafta-izgara"></div>
+  </section>
+
+  <!-- ── Projeler ──────────────────────────────────────────────────── -->
+  <section id="sekme-projeler" class="sekme-govde gizli">
+    <div class="gun-bas">
+      <div>
+        <h3>Projeler</h3>
+        <p class="alt">Kod projeleri diskten kendiliğinden gelir. 3D baskı,
+          yayın ve kişisel işleri buradan ekle.</p>
+      </div>
+      <button id="proje-ekle-ac" class="birincil">+ Proje ekle</button>
+    </div>
+
+    <div id="proje-ekle-form" class="form-kutu gizli">
+      <div class="form-satir">
+        <input id="yp-ad" type="text" placeholder="Proje adı" autocomplete="off" />
+        <select id="yp-tur">
+          <option value="baski">3D baskı</option>
+          <option value="yayin">Yayın / mağaza</option>
+          <option value="kisisel">Kişisel</option>
+          <option value="diger">Diğer</option>
+        </select>
+      </div>
+      <div class="form-satir">
+        <input id="yp-hedef" type="date" title="Hedef tarih" />
+        <select id="yp-oncelik">
+          <option value="1">Öncelik: kritik</option>
+          <option value="2" selected>Öncelik: normal</option>
+          <option value="3">Öncelik: düşük</option>
+        </select>
+      </div>
+      <textarea id="yp-not" rows="2"
+                placeholder="Bu proje ne? Mentörün planlarken bilmesi gerekenler."></textarea>
+      <div class="form-satir sag">
+        <button id="yp-iptal" class="metin-dugme">İptal</button>
+        <button id="yp-kaydet" class="birincil">Kaydet</button>
+      </div>
+    </div>
+
+    <div id="proje-kartlar" class="proje-kartlar"></div>
+  </section>
+
+  <!-- ── Baskı (atölye) ────────────────────────────────────────────── -->
+  <section id="sekme-atolye" class="sekme-govde gizli">
+    <div class="gun-bas">
+      <div>
+        <h3>Atölye</h3>
+        <p class="alt">Yazıcılar ve süren baskılar. Baskı bitince mentör
+          sıradaki adımı takvime yazar.</p>
+      </div>
+      <div class="satir-aksiyon" style="margin:0">
+        <button id="yazici-ara" class="ikincil">Ağda ara</button>
+        <button id="yazici-ekle-ac" class="birincil">+ Yazıcı</button>
+      </div>
+    </div>
+
+    <div id="yazici-ekle-form" class="form-kutu gizli">
+      <div class="form-satir">
+        <input id="yz-ad" type="text" placeholder="Yazıcı adı — örn. Kobra S1 #1" autocomplete="off" />
+        <input id="yz-model" type="text" placeholder="Model" value="Anycubic Kobra S1" autocomplete="off" />
+      </div>
+      <div class="form-satir">
+        <input id="yz-ip" type="text" placeholder="Yerel IP (biliniyorsa, boş bırakılabilir)" autocomplete="off" />
+        <input id="yz-not" type="text" placeholder="Not — örn. nozzle 0.4, sol raf" autocomplete="off" />
+      </div>
+      <div class="form-satir sag">
+        <button id="yz-iptal" class="metin-dugme">İptal</button>
+        <button id="yz-kaydet" class="birincil">Ekle</button>
+      </div>
+    </div>
+
+    <div id="yazici-bulunan" class="cerceve gizli"></div>
+    <div id="yazici-kartlar" class="proje-kartlar"></div>
+
+    <h4 class="alt-baslik">3d Projeler klasörü</h4>
+    <p class="alt" id="klasor-yol"></p>
+    <div class="dosya-sutunlar">
+      <div class="dosya-sutun">
+        <header>Baskıya Verilecekler <span id="sayi-bekleyen">0</span></header>
+        <div id="dosya-bekleyen" class="kayit-liste"></div>
+      </div>
+      <div class="dosya-sutun">
+        <header>Baskısı Bitenler <span id="sayi-biten">0</span></header>
+        <div id="dosya-biten" class="kayit-liste"></div>
+      </div>
+    </div>
+
+    <h4 class="alt-baslik">Maliyet ve kâr (son 30 gün)</h4>
+    <div id="kar-ozet" class="yasam-kartlar"></div>
+
+    <h4 class="alt-baslik">Son baskılar</h4>
+    <div id="baski-gecmis" class="kayit-liste"></div>
+  </section>
+
+  <!-- ── Rapor (istatistik + günlük) ───────────────────────────────── -->
+  <section id="sekme-rapor" class="sekme-govde gizli">
+    <div class="gun-bas">
+      <div>
+        <h3>Rapor</h3>
+        <p class="alt">Atölye, mentörlük ve maliyet istatistikleri.</p>
+      </div>
+      <select id="rapor-aralik" class="kucuk-secim">
+        <option value="7">Son 7 gün</option>
+        <option value="30" selected>Son 30 gün</option>
+        <option value="90">Son 90 gün</option>
+      </select>
+    </div>
+
+    <div id="rapor-kartlar" class="yasam-kartlar"></div>
+
+    <h4 class="alt-baslik">Yazıcı kullanımı</h4>
+    <div id="rapor-yazicilar" class="kayit-liste"></div>
+
+    <h4 class="alt-baslik">Uyum eğrisi</h4>
+    <div id="rapor-egri" class="egri"></div>
+
+    <h4 class="alt-baslik">En çok kaçırılan işler</h4>
+    <div id="rapor-kacan" class="kayit-liste"></div>
+
+    <h4 class="alt-baslik">Ekran süresi</h4>
+    <p class="alt" id="ekran-ozet"></p>
+    <div id="ekran-liste" class="kayit-liste"></div>
+
+    <h4 class="alt-baslik">Yedekler</h4>
+    <div class="satir-aksiyon" style="margin-top:0">
+      <button id="yedek-al" class="ikincil">Şimdi yedek al</button>
+      <button id="yedek-dokum" class="ikincil">JSON dökümü</button>
+      <span id="yedek-ozet" class="alt"></span>
+    </div>
+    <div id="yedek-liste" class="kayit-liste"></div>
+
+    <h4 class="alt-baslik">İşlem günlüğü</h4>
+    <div class="plan-arac">
+      <input id="gunluk-ara" type="text" placeholder="Günlükte ara…" autocomplete="off" />
+      <select id="gunluk-seviye" class="kucuk-secim">
+        <option value="">Tüm seviyeler</option>
+        <option value="hata">Yalnız hatalar</option>
+        <option value="uyari">Uyarılar</option>
+        <option value="bilgi">Bilgi</option>
+      </select>
+      <button id="gunluk-yenile" class="ikincil">Getir</button>
+    </div>
+    <div id="gunluk-liste" class="gunluk-liste"></div>
+  </section>
+
+  <!-- ── Yaşam ─────────────────────────────────────────────────────── -->
+  <section id="sekme-yasam" class="sekme-govde gizli">
+    <div class="gun-bas">
+      <div>
+        <h3>Yaşam</h3>
+        <p class="alt">Aşağıya yaz ya da mikrofona konuş:
+          “dün 6 saat uyudum, kahveye 45 lira verdim”.</p>
+      </div>
+      <select id="yasam-aralik" class="kucuk-secim">
+        <option value="7" selected>Son 7 gün</option>
+        <option value="14">Son 14 gün</option>
+        <option value="30">Son 30 gün</option>
+      </select>
+    </div>
+
+    <div id="yasam-kartlar" class="yasam-kartlar"></div>
+
+    <div class="satir-aksiyon">
+      <button id="yasam-analiz" class="ikincil">Değerlendir</button>
+      <button id="yasam-yenile" class="metin-dugme">Yenile</button>
+    </div>
+
+    <div id="yasam-yorum" class="cerceve gizli"></div>
+    <div id="yasam-kayitlar" class="kayit-liste"></div>
+  </section>
+
+
+  <!-- ── Koç ───────────────────────────────────────────────────────── -->
+  <section id="sekme-koc" class="sekme-govde gizli">
+    <div class="gun-bas">
+      <div>
+        <h3>Koç</h3>
+        <p class="alt">Ritüeller, alışkanlıklar, örüntüler ve bütçe.
+          Yorum sert — yumuşatma yok.</p>
+      </div>
+      <div class="satir-aksiyon" style="margin:0">
+        <button id="seans-yap" class="ikincil">Haftalık seans</button>
+        <button id="rituel-sabah" class="ikincil">Sabah</button>
+        <button id="rituel-aksam" class="birincil">Akşam</button>
+      </div>
+    </div>
+
+    <div id="rituel-kutu" class="cerceve gizli"></div>
+    <div id="rituel-sorular" class="form-kutu gizli"></div>
+
+    <h4 class="alt-baslik">Alışkanlıklar</h4>
+    <div class="satir-aksiyon" style="margin-top:0">
+      <button id="aliskanlik-ekle-ac" class="ikincil">+ Alışkanlık</button>
+    </div>
+    <div id="aliskanlik-form" class="form-kutu gizli">
+      <div class="form-satir">
+        <input id="ya-ad" type="text" placeholder="Alışkanlık — örn. Spor" autocomplete="off" />
+        <input id="ya-saat" type="time" title="Hatırlatma saati" />
+        <select id="ya-hedef">
+          <option value="7">Her gün</option>
+          <option value="5" selected>Haftada 5</option>
+          <option value="3">Haftada 3</option>
+          <option value="2">Haftada 2</option>
+        </select>
+      </div>
+      <div class="form-satir sag">
+        <button id="ya-iptal" class="metin-dugme">İptal</button>
+        <button id="ya-kaydet" class="birincil">Ekle</button>
+      </div>
+    </div>
+    <div id="aliskanlik-liste" class="aliskanlik-liste"></div>
+
+    <h4 class="alt-baslik">Koçun tespitleri</h4>
+    <div id="kalip-liste" class="kayit-liste"></div>
+
+    <h4 class="alt-baslik">Bütçe (bu ay)</h4>
+    <div class="plan-arac">
+      <input id="butce-aylik" type="number" min="0" step="100" placeholder="Aylık bütçe (TL)" />
+      <button id="butce-kaydet" class="ikincil">Kaydet</button>
+    </div>
+    <div id="butce-ozet" class="yasam-kartlar"></div>
+    <div id="butce-kategori" class="kayit-liste"></div>
+  </section>
+
+  <!-- ── Sohbet (mevcut akış) ──────────────────────────────────────── -->
+  <section id="sekme-sohbet" class="sekme-govde gizli">
+    <div id="proje-arac" class="proje-arac gizli">
+      <button id="brifing-ac" class="ikincil">Brifing</button>
+      <button id="brifing-derin" class="ikincil" title="Claude projeyi inceleyip kalıcı brifing çıkarsın">Derin inceleme</button>
+      <span class="bosluk"></span>
+      <span id="oto-bilgi" class="oto-bilgi"></span>
+      <label class="oto-etiket" title="Sıradaki adımı kendi belirleyip çalıştırsın">
+        <input type="checkbox" id="oto-anahtar" />
+        <span>Otomatik devam</span>
+      </label>
+    </div>
+
+    <section id="brifing-kutu" class="brifing gizli"></section>
+    <section id="akis" class="akis"></section>
+    <section id="eylem-serit" class="eylem-serit gizli"></section>
+  </section>
+
+  <div id="dinleme-serit" class="dinleme-serit gizli">
+    <span class="dinleme-nokta"></span>
+    <span id="dinleme-yazi">Dinliyorum — “Hey Nova” de</span>
+    <button id="dinleme-kapat" class="metin-dugme">Kapat</button>
+  </div>
+
+  <footer class="giris">
+    <button id="mikrofon" class="mik" title="Konuşmak için basılı tut (veya Boşluk)">
+      <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+        <path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3z"/>
+        <path d="M19 11a7 7 0 0 1-14 0M12 18v3"/>
+      </svg>
+    </button>
+    <button id="surekli" class="surekli-dugme" title="Sürekli dinle — “Hey Nova” de, yeter">
+      <svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true">
+        <path d="M6 12a6 6 0 1 1 12 0c0 3-2 4-2 6a2 2 0 0 1-4 0"/>
+        <path d="M9 12a3 3 0 0 1 6 0"/>
+      </svg>
+      <span id="surekli-yazi">Sürekli dinle</span>
+    </button>
+    <textarea id="mesaj" rows="1" placeholder="Mesaj yaz ya da mikrofona bas…"></textarea>
+    <button id="gonder" class="gonder" title="Gönder (Enter)">Gönder</button>
+  </footer>
+</main>
+
+<div id="ayar-katman" class="katman gizli">
+  <div class="ayar-kutu">
+    <header>
+      <h3>Ayarlar</h3>
+      <button id="ayarlar-kapat" class="ikon">✕</button>
+    </header>
+    <div id="ayar-govde"></div>
+  </div>
+</div>
+
+<div id="bildirim-katman" class="katman gizli">
+  <div class="ayar-kutu">
+    <header>
+      <h3>Bildirimler</h3>
+      <div>
+        <button id="bildirim-temizle" class="metin-dugme">Hepsini okundu yap</button>
+        <button id="bildirim-kapat" class="ikon">✕</button>
+      </div>
+    </header>
+    <div id="bildirim-govde"></div>
+  </div>
+</div>
+
+<div id="gorev-katman" class="katman gizli">
+  <div class="ayar-kutu dar">
+    <header>
+      <h3 id="gorev-form-baslik">Görev ekle</h3>
+      <button id="gorev-kapat" class="ikon">✕</button>
+    </header>
+    <div class="form-kutu">
+      <input id="yg-baslik" type="text" placeholder="Ne yapılacak?" autocomplete="off" />
+      <div class="form-satir">
+        <input id="yg-tarih" type="date" />
+        <input id="yg-saat" type="time" />
+        <input id="yg-sure" type="number" min="15" step="15" value="60" title="Süre (dakika)" />
+      </div>
+      <div class="form-satir">
+        <select id="yg-proje"><option value="">Proje seçilmedi</option></select>
+        <select id="yg-oncelik">
+          <option value="1">Kritik</option>
+          <option value="2" selected>Normal</option>
+          <option value="3">Esnek</option>
+        </select>
+      </div>
+      <textarea id="yg-ayrinti" rows="2"
+                placeholder="Nasıl yapılacak, neyle bitmiş sayılır?"></textarea>
+      <label class="onay-etiket">
+        <input type="checkbox" id="yg-zorunlu" checked />
+        <span>Zorunlu — kaçırılırsa telafisi otomatik yazılsın</span>
+      </label>
+      <div class="form-satir sag">
+        <button id="yg-iptal" class="metin-dugme">İptal</button>
+        <button id="yg-kaydet" class="birincil">Ekle</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="baski-katman" class="katman gizli">
+  <div class="ayar-kutu dar">
+    <header>
+      <h3 id="baski-form-baslik">Baskı ver</h3>
+      <button id="baski-kapat" class="ikon">✕</button>
+    </header>
+    <div class="form-kutu">
+      <input id="yb-ad" type="text" placeholder="Ne basılıyor? — örn. promosyon anahtarlık v3" autocomplete="off" />
+      <div class="form-satir">
+        <input id="yb-saat" type="number" min="0" step="1" value="4" title="Saat" />
+        <input id="yb-dakika" type="number" min="0" max="59" step="5" value="0" title="Dakika" />
+        <select id="yb-proje"><option value="">Proje seçilmedi</option></select>
+      </div>
+      <p class="alt">Slicer'ın verdiği tahmini süreyi gir. Sonradan
+        düzeltebilirsin — bitiş dürtmesi ona göre kayar.</p>
+      <div class="form-satir sag">
+        <button id="yb-iptal" class="metin-dugme">İptal</button>
+        <button id="yb-kaydet" class="birincil">Başlat</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="yazici-katman" class="katman gizli">
+  <div class="ayar-kutu dar">
+    <header>
+      <h3>Yazıcı ayarları</h3>
+      <button id="yd-kapat" class="ikon">✕</button>
+    </header>
+    <div class="form-kutu">
+      <div class="form-satir">
+        <input id="yd-ad" type="text" placeholder="Yazıcı adı" autocomplete="off" />
+        <input id="yd-model" type="text" placeholder="Model" autocomplete="off" />
+      </div>
+      <div class="form-satir">
+        <input id="yd-filament" type="text" placeholder="Takılı filament — örn. PLA" autocomplete="off" />
+        <input id="yd-renk" type="text" placeholder="Renk" autocomplete="off" />
+        <input id="yd-nozzle" type="text" placeholder="Nozzle" autocomplete="off" />
+      </div>
+      <div class="form-satir">
+        <input id="yd-gram" type="number" min="0" step="10" placeholder="Makarada kalan (gram)" />
+        <select id="yd-durum">
+          <option value="bos">Boş</option>
+          <option value="basiliyor">Baskıda</option>
+          <option value="bakim">Bakımda</option>
+          <option value="kapali">Kapalı</option>
+        </select>
+      </div>
+      <div class="form-satir">
+        <input id="yd-ip" type="text" placeholder="Yerel IP" autocomplete="off" />
+        <input id="yd-kamera" type="text" placeholder="Kamera akış adresi (MJPEG)" autocomplete="off" />
+      </div>
+      <input id="yd-not" type="text" placeholder="Not" autocomplete="off" />
+      <div class="form-satir sag">
+        <button id="yd-iptal" class="metin-dugme">İptal</button>
+        <button id="yd-kaydet" class="birincil">Kaydet</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="kamera-katman" class="katman gizli">
+  <div class="ayar-kutu">
+    <header>
+      <h3 id="kamera-baslik">Kamera</h3>
+      <button id="kamera-kapat" class="ikon">✕</button>
+    </header>
+    <div id="kamera-govde" class="kamera-govde"></div>
+  </div>
+</div>
+
+<div id="giris-katman" class="katman gizli">
+  <div class="giris-kutu">
+    <h3>NOVA</h3>
+    <p>Bu cihazdan bağlanmak için parolanı gir.</p>
+    <input id="giris-parola" type="password" placeholder="Parola" autocomplete="current-password" />
+    <button id="giris-dugme" class="birincil">Bağlan</button>
+    <p id="giris-hata" class="giris-hata"></p>
+  </div>
+</div>
+
+<div id="bildirim" class="bildirim gizli"></div>
+
+<script src="/statik/app.js"></script>
+<script src="/statik/gorsel.js"></script>
+<script src="/statik/panel.js"></script>
+</body>
+</html>

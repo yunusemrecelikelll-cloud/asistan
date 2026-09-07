@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img"
+     aria-label="NOVA">
+  <defs>
+    <linearGradient id="nova-parlak" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#9cc4ff"/>
+      <stop offset="0.55" stop-color="#6ea8fe"/>
+      <stop offset="1" stop-color="#3d7ee0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Ana patlama: içbükey kenarlı dört uçlu yıldız. Kenarların merkeze
+       doğru çekilmesi ışığın parladığı izlenimini veriyor. -->
+  <path fill="url(#nova-parlak)"
+        d="M32 2
+           C34 18 46 30 62 32
+           C46 34 34 46 32 62
+           C30 46 18 34 2 32
+           C18 30 30 18 32 2 Z"/>
+
+  <!-- İkincil, çapraz ve küçük patlama: tek yıldız fazla simetrik ve durgun
+       duruyor; bu ikincisi hareket katıyor. -->
+  <path fill="url(#nova-parlak)" opacity="0.5"
+        d="M50 8
+           C51 14 55 18 61 19
+           C55 20 51 24 50 30
+           C49 24 45 20 39 19
+           C45 18 49 14 50 8 Z"/>
+
+  <!-- Çekirdek: merkezdeki yoğunluk -->
+  <circle cx="32" cy="32" r="3.2" fill="#eaf2ff" opacity="0.9"/>
+</svg>

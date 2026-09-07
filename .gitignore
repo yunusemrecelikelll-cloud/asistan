@@ -1,0 +1,34 @@
+# ── Sanal ortamlar ───────────────────────────────────────────────────────
+.venv/
+.venv-ses/
+
+# ── Ayrı deposu olan alt proje ───────────────────────────────────────────
+# mobil/ kendi git deposu ve kendi uzak sunucusu var: asistan-mobil
+mobil/
+
+# ── Çalışma verisi ───────────────────────────────────────────────────────
+# data/ sırları ve kişisel veriyi tutuyor: parola, tuz, imza özel anahtarı,
+# uyku/harcama kayıtları, konuşma geçmişi, ses örnekleri. Hiçbiri depoya
+# girmemeli — özel depo olsa bile. Yalnızca model tanımı korunuyor.
+data/*
+!data/Modelfile.9b-tr
+
+# ── İkili araçlar ────────────────────────────────────────────────────────
+# 54 MB; gerektiğinde cloudflare'den indirilir.
+tools/cloudflared.exe
+
+# ── Python ───────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# ── Xcode / SwiftPM ──────────────────────────────────────────────────────
+.build/
+.swiftpm/
+*.xcuserstate
+xcuserdata/
+DerivedData/
+
+# ── İşletim sistemi ──────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db

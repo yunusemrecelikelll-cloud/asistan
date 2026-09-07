@@ -1,0 +1,16 @@
+[project]
+name = "asistan"
+version = "0.1.0"
+description = "Kişisel yapay zekâ asistanı — Claude projelerini yöneten sesli komuta merkezi"
+requires-python = ">=3.10,<3.14"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.32",
+    "python-multipart>=0.0.9",
+    "httpx>=0.27",
+    "edge-tts>=7.0",
+    "faster-whisper>=1.1",
+]
+
+[tool.uv]
+package = false
