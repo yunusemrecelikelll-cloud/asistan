@@ -72,8 +72,8 @@ final class SaatRolesi: NSObject, ObservableObject {
         b.yanitGeldi = { [weak self] m, kismi in
             self?.cerceveYolla("yanit", ["metin": m, "kismi": kismi])
         }
-        b.sesParcasiGeldi = { [weak self] veri, bicim in
-            self?.sesYolla(veri, bicim: bicim)
+        b.sesParcasiGeldi = { [weak self] veri, bicim, ara in
+            self?.sesYolla(veri, bicim: bicim, ara: ara)
         }
         b.turBitti = { [weak self] in
             self?.cerceveYolla("bitti", [:])
@@ -115,11 +115,13 @@ final class SaatRolesi: NSObject, ObservableObject {
         saateYolla(["c": veri])
     }
 
-    private func sesYolla(_ ham: Data, bicim: String) {
-        kuyruk.async { [weak self] in self?.sesYollaIc(ham, bicim: bicim) }
+    private func sesYolla(_ ham: Data, bicim: String, ara: Bool) {
+        kuyruk.async { [weak self] in
+            self?.sesYollaIc(ham, bicim: bicim, ara: ara)
+        }
     }
 
-    private func sesYollaIc(_ ham: Data, bicim: String) {
+    private func sesYollaIc(_ ham: Data, bicim: String, ara: Bool) {
         // Sıkıştırma başarısız olursa ham veriyi dilimleyerek yolluyoruz;
         // hız iyileştirmesi, çalışmanın ön koşulu değil.
         var veri = ham
@@ -138,7 +140,7 @@ final class SaatRolesi: NSObject, ObservableObject {
             let son = veri.index(yer, offsetBy: dilimBoyu,
                                  limitedBy: veri.endIndex) ?? veri.endIndex
             saateYolla(["a": Data(veri[yer..<son]), "i": kimlik,
-                        "k": k, "n": toplam, "b": tur])
+                        "k": k, "n": toplam, "b": tur, "d": ara])
             yer = son
             k += 1
         }

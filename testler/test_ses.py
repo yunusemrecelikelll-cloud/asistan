@@ -146,6 +146,42 @@ kontrol("kapalıyken dokunmaz",
         == "Bu uzun bir metin, en az altmış karakter olsun diye yazıldı.")
 store.ayar_yaz("dogal_konusma", "1")
 
+print("\n[10] turun ilk parcasi ince bolunuyor")
+
+# Seslendirme suresi metin uzunluguyla orantili (~85 ms/karakter). Ilk sesin
+# duyulma ani dogrudan ilk parcanin uzunluguna bagli, o yuzden yalnizca onu
+# boluyoruz; sonrakiler zaten onceki ses calarken uretiliyor.
+
+
+def _bol(metin):
+    return [p["metin"] for p in dogal.ilk_parcayi_bol(dogal.parcala(metin))]
+
+
+p = _bol("Bugun bes isin var ve biri de telafi gorevi.")
+kontrol("baglactan bolundu", len(p) == 2)
+kontrol("baglac ikinci parcada", p[1].startswith("ve"))
+kontrol("ilk parca kisaldi", len(p[0]) <= dogal.ILK_PARCA_HEDEF)
+
+p = _bol("Tamam, bakiyorum ama bu biraz surebilir.")
+kontrol("virgulden sonra bolundu", p[0].rstrip().endswith("bakiyorum"))
+
+p = _bol("Vardigin saatte su an sadece bir sey yapabilirsin.")
+kontrol("noktalama yoksa kelime sinirindan", len(p) == 2)
+kontrol("kelime ortasindan bolmuyor", all(x.strip() == x for x in p))
+kontrol("bolunen metin korunuyor",
+        " ".join(p) == "Vardigin saatte su an sadece bir sey yapabilirsin.")
+
+kontrol("kisa cumleye dokunmuyor",
+        _bol("Bugun hicbir sey yok.") == ["Bugun hicbir sey yok."])
+kontrol("tek kelimeye dokunmuyor", _bol("Tamam.") == ["Tamam."])
+kontrol("bos liste sorun degil", dogal.ilk_parcayi_bol([]) == [])
+
+# Kalinti cok kisa kalacaksa bolmuyoruz.
+uzun = dogal.ilk_parcayi_bol([{"metin": "A" * 40 + ", b", "hiz": 0,
+                               "perde": 0, "sonra_ms": 0}])
+kontrol("cok kisa kalinti icin bolmuyor", len(uzun) == 1)
+
+
 print(f"\n{'='*54}")
 print(f"  {gecti} test geçti, {len(kaldi)} kaldı")
 for k in kaldi:

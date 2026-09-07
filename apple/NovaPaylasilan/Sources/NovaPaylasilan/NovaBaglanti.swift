@@ -20,7 +20,8 @@ public final class NovaBaglanti {
     public var durumDegisti: ((Durum) -> Void)?
     public var yaziGeldi: ((String) -> Void)?
     public var yanitGeldi: ((String, Bool) -> Void)?          // metin, kısmi mi
-    public var sesParcasiGeldi: ((Data, String) -> Void)?     // veri, biçim
+    public var sesParcasiGeldi: ((Data, String, Bool) -> Void)?
+    // veri, biçim, dolgu mu (kullanıcı sustuktan sonraki "seni duydum")
     public var turBitti: (() -> Void)?
     public var olayGeldi: ((String, [String: Any]) -> Void)?
 
@@ -47,6 +48,7 @@ public final class NovaBaglanti {
 
     private var tasiyici: Tasiyici
     private var bekleyenBicim: String?
+    private var bekleyenAra = false
     private var nabiz: Timer?
 
     public init(tasiyici: Tasiyici = SoketTasiyici()) {
@@ -61,6 +63,7 @@ public final class NovaBaglanti {
         tasiyici.kapat()
         tasiyici = yeni
         bekleyenBicim = nil
+        bekleyenAra = false
         bagla()
         ac()
     }
@@ -137,8 +140,9 @@ public final class NovaBaglanti {
             DispatchQueue.main.async { self.yaziGeldi?(m) }
         case .yanit(let m, _, let kismi, _):
             DispatchQueue.main.async { self.yanitGeldi?(m, kismi) }
-        case .parca(_, _, let bicim, _):
+        case .parca(_, _, let bicim, _, let ara):
             bekleyenBicim = bicim          // ikili çerçeve BUNDAN sonra gelir
+            bekleyenAra = ara
         case .bitti:
             DispatchQueue.main.async { self.turBitti?() }
         case .olay(let tur, let d):
@@ -152,8 +156,12 @@ public final class NovaBaglanti {
 
     private func ikiliCerceve(_ veri: Data) {
         let bicim = bekleyenBicim ?? "audio/wav"
+        let ara = bekleyenAra
         bekleyenBicim = nil
-        DispatchQueue.main.async { self.sesParcasiGeldi?(veri, bicim) }
+        bekleyenAra = false
+        DispatchQueue.main.async {
+            self.sesParcasiGeldi?(veri, bicim, ara)
+        }
     }
 
     private func nabziBaslat() {

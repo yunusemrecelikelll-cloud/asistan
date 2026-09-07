@@ -49,6 +49,9 @@ class Oturum:
         self.ws = ws
         self.acik = True
         self.ses_tamponu = bytearray()
+        # Bu turda gerçek yanıt sesi çıktı mı? Ara sesler bunu kapatıyor;
+        # bekleme sesi yalnızca hâlâ sessizken çalıyor.
+        self.gercek_ses_cikti = False
 
     async def json_gonder(self, veri: dict) -> None:
         if self.acik:
@@ -87,6 +90,47 @@ async def _olay_akisi(o: Oturum) -> None:
             await o.json_gonder({"tur": "olay", "olay": e})
 
 
+async def ara_ses_gonder(o: Oturum, tur: str = "ilk") -> bool:
+    """Hazır bir ara sesi olduğu gibi it.
+
+    Doğallaştırma, parçalama, seslendirme — hiçbiri yok. Klip zaten diskte
+    duruyor; buradaki tek iş dosyayı okuyup yollamak. Amacı gecikmeyi
+    kapatmak olan bir şeyin kendisi gecikme üretmemeli.
+    """
+    import ara_ses
+
+    if not o.acik or o.gercek_ses_cikti:
+        return False
+    secim = await asyncio.to_thread(ara_ses.sec, tur)
+    if not secim or not o.acik or o.gercek_ses_cikti:
+        return False
+    veri, mime, metin = secim
+    # "ara": bu bir dolgu. İstemci ilk-ses gecikmesini bununla ölçmesin,
+    # yoksa gerçek gecikme rakamı görünmez olur.
+    await o.json_gonder({"tur": "parca", "sira": -1, "bayt": len(veri),
+                         "bicim": mime, "metin": metin, "ara": True})
+    await o.ikili_gonder(veri)
+    return True
+
+
+async def _bekleme_sesleri(o: Oturum) -> None:
+    """İş uzarsa arada "hâlâ bakıyorum" de.
+
+    Proje komutlarında taslak üretimi 15 saniyeyi bulabiliyor. Tek bir
+    "tamam"dan sonra yarım dakika sessizlik, hiç konuşmamaktan daha kötü:
+    kullanıcı bağlantı koptu sanıyor.
+    """
+    import ara_ses
+
+    onceki = 0.0
+    for an in ara_ses.BEKLEME_ANLARI:
+        await asyncio.sleep(an - onceki)
+        onceki = an
+        if not o.acik or o.gercek_ses_cikti:
+            return
+        await ara_ses_gonder(o, "bekleme")
+
+
 async def _cumleyi_gonder(o: Oturum, sira: int, cumle: str,
                           dogal_hazir: bool = False) -> int:
     """Tek cümleyi doğallaştır, seslendir, it. Kaç parça gittiğini döner.
@@ -104,6 +148,12 @@ async def _cumleyi_gonder(o: Oturum, sira: int, cumle: str,
     parcalar = await asyncio.to_thread(
         lambda: dogal.parcala(temiz if dogal_hazir
                               else dogal.dogallastir(temiz)))
+    # Turun ILK parçasını ince bölüyoruz: seslendirme süresi metin
+    # uzunluğuyla orantılı, ve ilk sesin duyulmasına kadar geçen süre
+    # doğrudan bu parçanın uzunluğuna bağlı. Sonraki parçalar önceki ses
+    # çalarken üretildiği için onlarda bölmenin kazancı yok.
+    if sira == 0:
+        parcalar = dogal.ilk_parcayi_bol(parcalar)
     gonderilen = 0
     for p in parcalar:
         if not o.acik:
@@ -117,6 +167,8 @@ async def _cumleyi_gonder(o: Oturum, sira: int, cumle: str,
                              "bayt": len(veri), "bicim": tur,
                              "metin": p["metin"]})
         await o.ikili_gonder(veri)
+        # İlk gerçek parça çıktı: bekleme sesleri sussun.
+        o.gercek_ses_cikti = True
         gonderilen += 1
     return gonderilen
 
@@ -290,7 +342,20 @@ async def _sesi_isle(o: Oturum, uzanti: str, sesli: bool) -> None:
     if not metin:
         await o.json_gonder({"tur": "bitti"})
         return
-    await _metni_isle(o, metin, sesli, ses_mi=True)
+
+    # Ara ses BURADA giriyor, konuşma tanımadan hemen sonra: konuştuğunu
+    # kesin biliyoruz (boş kayıt yukarıda elendi) ama yanıta daha 2-3
+    # saniye var. Kullanıcı sustuktan ~300 ms sonra bir karşılık duyuyor.
+    bekleyici = None
+    if sesli:
+        o.gercek_ses_cikti = False
+        await ara_ses_gonder(o, "ilk")
+        bekleyici = asyncio.create_task(_bekleme_sesleri(o))
+    try:
+        await _metni_isle(o, metin, sesli, ses_mi=True)
+    finally:
+        if bekleyici:
+            bekleyici.cancel()
 
 
 async def kanal(ws: WebSocket) -> None:

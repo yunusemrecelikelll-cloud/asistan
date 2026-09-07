@@ -1,0 +1,120 @@
+name: Apple derleme
+
+# Swift kodu bu projede Windows'ta yazılıyor; Xcode yalnızca macOS'ta
+# çalıştığı için derleyiciyi ancak burada görebiliyoruz.
+#
+# Adımlar kasıtlı olarak "hata alsa da devam et" biçiminde: derleme
+# hatalarını teker teker bulmak yerine TEK çalıştırmada hepsini görmek
+# istiyoruz. Sonuç en sonda toplanıp iş ona göre başarısız oluyor.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apple/**'
+      - '.github/workflows/apple.yml'
+  pull_request:
+    paths:
+      - 'apple/**'
+  workflow_dispatch:
+
+jobs:
+  derle:
+    runs-on: macos-15
+    timeout-minutes: 40
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Ortam
+        run: |
+          xcodebuild -version
+          swift --version
+          echo "--- simülatörler ---"
+          xcrun simctl list devices available | grep -E 'iPhone|Watch' | head -20
+
+      - name: XcodeGen kur
+        run: brew install xcodegen
+
+      - name: Projeyi üret
+        working-directory: apple
+        run: |
+          xcodegen generate --spec project.yml
+          echo "--- şemalar ---"
+          xcodebuild -list -project Nova.xcodeproj
+
+      - name: Derle ve test et
+        id: derleme
+        working-directory: apple
+        run: |
+          # Hiçbir adım diğerlerini engellemesin: hepsini çalıştırıp
+          # sonuçları topluyoruz.
+          set +e
+          kod=0
+          ozet=""
+
+          calistir() {
+            ad="$1"; shift
+            echo ""
+            echo "══════════════════════════════════════════════════════"
+            echo "  $ad"
+            echo "══════════════════════════════════════════════════════"
+            "$@"
+            son=$?
+            if [ $son -ne 0 ]; then
+              kod=1
+              ozet="${ozet}\n  ✗ $ad"
+            else
+              ozet="${ozet}\n  ✓ $ad"
+            fi
+          }
+
+          IMZASIZ="CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="
+
+          calistir "Ortak paket — iOS" \
+            xcodebuild build \
+              -project Nova.xcodeproj \
+              -scheme NovaPaylasilan \
+              -destination 'generic/platform=iOS' \
+              $IMZASIZ
+
+          calistir "Ortak paket — watchOS" \
+            xcodebuild build \
+              -project Nova.xcodeproj \
+              -scheme NovaPaylasilan \
+              -destination 'generic/platform=watchOS' \
+              $IMZASIZ
+
+          calistir "iPhone uygulaması" \
+            xcodebuild build \
+              -project Nova.xcodeproj \
+              -scheme NovaTelefon \
+              -destination 'generic/platform=iOS' \
+              $IMZASIZ
+
+          calistir "Apple Watch uygulaması" \
+            xcodebuild build \
+              -project Nova.xcodeproj \
+              -scheme NovaSaat \
+              -destination 'generic/platform=watchOS' \
+              $IMZASIZ
+
+          # Testler simülatör istiyor; hangi iPhone varsa onu seçiyoruz.
+          SIM=$(xcrun simctl list devices available \
+                | grep -oE 'iPhone [0-9]+( Pro)?' | tail -1)
+          echo "test simülatörü: ${SIM:-yok}"
+          if [ -n "$SIM" ]; then
+            calistir "Paket testleri ($SIM)" \
+              xcodebuild test \
+                -project Nova.xcodeproj \
+                -scheme NovaPaylasilan \
+                -destination "platform=iOS Simulator,name=$SIM" \
+                $IMZASIZ
+          fi
+
+          echo ""
+          echo "══════════════════════════════════════════════════════"
+          echo "  SONUÇ"
+          echo "══════════════════════════════════════════════════════"
+          printf "$ozet\n"
+          exit $kod

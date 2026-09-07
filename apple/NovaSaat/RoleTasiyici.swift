@@ -136,6 +136,7 @@ final class RoleTasiyici: NSObject, Tasiyici {
               let sira = m["k"] as? Int,
               let toplam = m["n"] as? Int, toplam > 0 else { return }
         let bicim = m["b"] as? String ?? "audio/wav"
+        let ara = m["d"] as? Bool ?? false
 
         var tam: Data?
         toplamaKilit.lock()
@@ -167,7 +168,7 @@ final class RoleTasiyici: NSObject, Tasiyici {
         // `NovaBaglanti` röleyi hiç bilmeden çalışmaya devam ediyor.
         let tarif: [String: Any] = ["tur": "parca", "sira": kimlik,
                                     "bayt": tam.count, "bicim": bicim,
-                                    "metin": ""]
+                                    "metin": "", "ara": ara]
         yayinKilit.lock()
         if let d = try? JSONSerialization.data(withJSONObject: tarif) {
             metinGeldi?(d)

@@ -376,6 +376,7 @@ VARSAYILAN_AYARLAR = {
     "ses_motoru": "klon",            # klon | edge (edge yalnizca yedek)
     "ses_adlari": '{"ses1": "Kalın", "ses2": "Orta", "ses3": "İnce", "referans": "Hareketli"}',
     "klon_referans": "ses1",         # klon motorunda kullanilacak ses
+    "ara_ses": "1",                  # konusma bitince kisa "seni duydum" sesi
 }
 
 

@@ -128,6 +128,14 @@ def _isit() -> None:
             gunluk.bilgi('sunucu', 'isitma', 'ses klonu hazır')
     except Exception as e:
         gunluk.hata('sunucu', 'isitma_tts', istisna=e)
+    try:
+        # Ara sesler (konusma bitince calan kisa onay) burada uretiliyor.
+        # Sicak yolda uretmek, doldurmaya calistigimiz gecikmeyi kendimizin
+        # uretmesi olurdu.
+        import ara_ses
+        gunluk.bilgi('sunucu', 'isitma', str(ara_ses.hazirla()))
+    except Exception as e:
+        gunluk.hata('sunucu', 'isitma_ara_ses', istisna=e)
 
 
 # ── modeller ───────────────────────────────────────────────────────────────
@@ -1745,7 +1753,27 @@ class SesSecIstek(BaseModel):
 def ses_sec(istek: SesSecIstek) -> dict:
     store.ayar_yaz("klon_referans", istek.anahtar)
     store.ayar_yaz("ses_motoru", "klon")
+    # Ara sesler ses basina onbelleklenlyor. Yeni sesin klipleri arka planda
+    # uretilsin; hazir olana kadar sec() sessizce bos donuyor, yani tur
+    # ara ses olmadan ama sorunsuz calisiyor.
+    threading.Thread(target=_ara_ses_yenile, daemon=True).start()
     return {"ok": True, "secili": istek.anahtar}
+
+
+def _ara_ses_yenile() -> None:
+    try:
+        import ara_ses
+        ara_ses.hazirla()
+    except Exception as e:
+        gunluk.hata("sunucu", "ara_ses_yenile", istisna=e)
+
+
+@app.post("/api/ara-ses/yenile")
+def ara_ses_yenile(zorla: bool = False) -> dict:
+    """Ara ses kliplerini yeniden uret. Ses degisince kendiliginden olur."""
+    import ara_ses
+
+    return ara_ses.hazirla(zorla=zorla)
 
 
 @app.post("/api/ses/dene")

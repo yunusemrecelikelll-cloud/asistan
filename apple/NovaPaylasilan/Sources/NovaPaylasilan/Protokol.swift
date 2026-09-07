@@ -20,7 +20,12 @@ public enum Protokol {
         /// Asistanın yanıtı. `kismi` ise daha fazlası geliyor.
         case yanit(metin: String, niyet: String?, kismi: Bool, sureMs: Int?)
         /// Bir ses parçası duyuruluyor; ikili çerçeve BUNDAN sonra gelir.
-        case parca(sira: Int, bayt: Int, bicim: String, metin: String)
+        ///
+        /// ``ara`` dolgu sesi demek — kullanıcı sustuktan sonraki sessizliği
+        /// kapatan kısa "seni duydum" klibi. Gerçek yanıt değil, o yüzden
+        /// ilk-ses gecikmesi ölçümüne katılmıyor.
+        case parca(sira: Int, bayt: Int, bicim: String, metin: String,
+                   ara: Bool)
         /// Turun sonu.
         case bitti
         /// Sunucudan kendiliğinden gelen değişiklik bildirimi.
@@ -52,7 +57,8 @@ public enum Protokol {
                 return .parca(sira: d["sira"] as? Int ?? 0,
                               bayt: d["bayt"] as? Int ?? 0,
                               bicim: d["bicim"] as? String ?? "audio/wav",
-                              metin: d["metin"] as? String ?? "")
+                              metin: d["metin"] as? String ?? "",
+                              ara: d["ara"] as? Bool ?? false)
             case "bitti":
                 return .bitti
             case "nabiz":

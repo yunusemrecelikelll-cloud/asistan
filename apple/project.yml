@@ -1,0 +1,102 @@
+# XcodeGen projesi — `xcodegen generate` bunu Nova.xcodeproj'a çevirir.
+#
+# Neden elle .xcodeproj tutmuyoruz: o dosya makine üretimi, birleştirmesi
+# imkânsız bir XML. Burada okunabilir bir tanım duruyor ve BENIOKU'daki
+# "Xcode'u aç, hedef ekle, dosyaları sürükle, Info.plist anahtarlarını gir"
+# adımlarının hepsi bunun içinde. Mac'te tek komut yetiyor:
+#
+#     brew install xcodegen && cd apple && xcodegen generate && open Nova.xcodeproj
+
+name: Nova
+
+options:
+  bundleIdPrefix: com.yunusemre.nova
+  createIntermediateGroups: true
+  deploymentTarget:
+    iOS: "17.0"
+    watchOS: "10.0"
+  # Uretilen/ klasoru gecici; depoya girmiyor.
+  generateEmptyDirectories: false
+
+packages:
+  NovaPaylasilan:
+    path: NovaPaylasilan
+
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+    MARKETING_VERSION: "1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    # Derleme kontrolu icin imza gerekmiyor; CI imzasiz derliyor.
+    CODE_SIGN_STYLE: Automatic
+    ENABLE_USER_SCRIPT_SANDBOXING: YES
+
+targets:
+
+  # ── iPhone ────────────────────────────────────────────────────────────
+  NovaTelefon:
+    type: application
+    platform: iOS
+    sources:
+      - path: NovaTelefon
+    dependencies:
+      - package: NovaPaylasilan
+        product: NovaPaylasilan
+      # Saat uygulamasi telefonun icine gomuluyor.
+      - target: NovaSaat
+        embed: true
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.yunusemre.nova
+        PRODUCT_NAME: NOVA
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        TARGETED_DEVICE_FAMILY: "1,2"
+    info:
+      path: Uretilen/NovaTelefon-Info.plist
+      properties:
+        CFBundleDisplayName: NOVA
+        CFBundleShortVersionString: "$(MARKETING_VERSION)"
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: false
+        UIUserInterfaceStyle: Dark
+        # Mikrofon: konusarak kullanim icin sart.
+        NSMicrophoneUsageDescription: >-
+          Nova ile konuşmak için mikrofon gerekiyor.
+        # Yerel ag: bilgisayardaki sunucuya ev aginda dogrudan baglanmak icin.
+        NSLocalNetworkUsageDescription: >-
+          Ev ağındaki bilgisayarında çalışan Nova sunucusuna bağlanmak için.
+        NSBonjourServices:
+          - _http._tcp
+        # Baglanti ws:// — yerel ag ve Tailscale, ikisi de ozel ag.
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
+        # Telefon cebe girince Nova susmasin.
+        UIBackgroundModes:
+          - audio
+
+  # ── Apple Watch ───────────────────────────────────────────────────────
+  # watchOS 9'dan beri saat uygulamasi TEK hedef (eski "WatchKit Extension"
+  # ikilisi kalkti). WKApplication anahtari bunu isaretliyor.
+  NovaSaat:
+    type: application
+    platform: watchOS
+    sources:
+      - path: NovaSaat
+    dependencies:
+      - package: NovaPaylasilan
+        product: NovaPaylasilan
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.yunusemre.nova.watchkitapp
+        PRODUCT_NAME: NOVA
+        TARGETED_DEVICE_FAMILY: "4"
+    info:
+      path: Uretilen/NovaSaat-Info.plist
+      properties:
+        CFBundleDisplayName: NOVA
+        CFBundleShortVersionString: "$(MARKETING_VERSION)"
+        WKApplication: true
+        WKCompanionAppBundleIdentifier: com.yunusemre.nova
+        # Saat ag ayari tutmuyor ama mikrofonu kendisi kullaniyor.
+        NSMicrophoneUsageDescription: >-
+          Nova ile konuşmak için mikrofon gerekiyor.

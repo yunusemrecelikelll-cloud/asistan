@@ -224,6 +224,74 @@ def temizle_isaretler(metin: str) -> str:
     return _BOZUK_ISARET.sub("", metin or "").replace("  ", " ")
 
 
+# Turun ilk parçası için hedef uzunluk. XTTS'in süresi metin uzunluğuyla
+# doğru orantılı: ölçülen ~85 ms/karakter. 50 karakterlik bir cümle 4,3
+# saniye demek ve o süre boyunca kullanıcı hiçbir şey duymuyor.
+#
+# Yalnızca İLK parçayı bölüyoruz. Sonrakiler zaten önceki ses çalarken
+# üretiliyor, yani onları bölmenin kazancı yok — bürünsel bütünlüğü
+# bozmanın bedeli ise var. Cümle ortasından bölünen bir parça XTTS'te
+# kendi başına bir cümle gibi tonlanıyor; bunu bir kez, en çok kazandığı
+# yerde göze alıyoruz.
+ILK_PARCA_HEDEF = 32
+ILK_PARCA_ASGARI = 12          # bundan kısa kalıntı bırakma
+
+# Noktalamada virgülden SONRA, bağlaçta bağlaçtan ÖNCE bölüyoruz:
+# "...beş işin var ve" diye kesmek kulağa yarım geliyor, "...beş işin var" +
+# "ve biri de telafi görevi" doğal duruyor.
+_NOKTALAMA = re.compile(r"[,;:—–]\s+")
+_BAGLAC = re.compile(r"\s+(?=(?:ve|ama|fakat|çünkü|ki|sonra|yani)\s)")
+
+
+def _kesme_yerleri(metin: str) -> list[int]:
+    yerler = {m.end() for m in _NOKTALAMA.finditer(metin)}
+    yerler |= {m.start() + 1 for m in _BAGLAC.finditer(metin)}
+    return sorted(yerler)
+
+
+def ilk_parcayi_bol(parcalar: list[dict],
+                    hedef: int = ILK_PARCA_HEDEF) -> list[dict]:
+    """İlk parça uzunsa onu ikiye ayır; gerisine dokunma.
+
+    Önce noktalama ve bağlaç arıyoruz — oralarda bölünce doğal duruyor.
+    Bulamazsak yalnızca gerçekten uzun parçalarda kelime sınırından
+    bölüyoruz; kısa bir cümleyi ortadan kesmenin kazancı zaten az.
+    """
+    if not parcalar:
+        return parcalar
+    ilk = parcalar[0]
+    metin = (ilk.get("metin") or "").strip()
+    if len(metin) <= hedef:
+        return parcalar
+
+    ust = hedef + ILK_PARCA_ASGARI
+    aday = [y for y in _kesme_yerleri(metin)
+            if ILK_PARCA_ASGARI <= y <= ust
+            and len(metin) - y >= ILK_PARCA_ASGARI]
+    kesme = aday[-1] if aday else None
+
+    if kesme is None and len(metin) > 45:
+        # Noktalama yok: kelime sınırından böl. Hedefe yakın ve ALTINDA
+        # kalan boşluğu seçiyoruz — amaç ilk parçayı kısa tutmak.
+        bosluk = metin.rfind(" ", ILK_PARCA_ASGARI, hedef)
+        if bosluk > 0 and len(metin) - bosluk - 1 >= ILK_PARCA_ASGARI:
+            kesme = bosluk + 1
+    if kesme is None:
+        return parcalar
+
+    bas, kalan = metin[:kesme].strip(), metin[kesme:].strip()
+    if not bas or not kalan:
+        return parcalar
+
+    once = dict(ilk)
+    once["metin"] = bas
+    # Bölme yeri zaten bir duraklama; araya ek boşluk koymuyoruz.
+    once["sonra_ms"] = min(ilk.get("sonra_ms", 0) or 0, 60)
+    sonra = dict(ilk)
+    sonra["metin"] = kalan
+    return [once, sonra] + parcalar[1:]
+
+
 def parcala(metin: str) -> list[dict]:
     """Metni seslendirme parçalarına ayır: her biri kendi hız/perdesiyle.
 

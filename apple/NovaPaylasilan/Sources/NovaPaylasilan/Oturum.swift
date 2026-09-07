@@ -183,7 +183,7 @@ public final class Oturum: ObservableObject {
             }
         }
 
-        baglanti.sesParcasiGeldi = { [weak self] veri, bicim in
+        baglanti.sesParcasiGeldi = { [weak self] veri, bicim, ara in
             Task { @MainActor in
                 guard let self else { return }
                 // Biçim SUNUCUDAN geliyor ve önemli: ses klonu düştüğünde
@@ -191,12 +191,15 @@ public final class Oturum: ObservableObject {
                 // alan atılıyordu, çalar da WAV varsayıp parçayı sessizce
                 // düşürüyordu — telefonda hiç ses çıkmıyordu.
                 guard self.calar.sirayaEkle(veri, bicim: bicim) else { return }
-                if !self.ilkSesGeldi, let t = self.turBaslangici {
+                // Dolgu sesi gecikme ölçümüne KATILMIYOR. Katsaydı ekranda
+                // hep ~300 ms görürdük ve gerçek gecikme görünmez olurdu —
+                // oysa o rakam tam da ayarlamak için orada duruyor.
+                if !ara, !self.ilkSesGeldi, let t = self.turBaslangici {
                     self.ilkSesGeldi = true
                     self.sonGecikmeMs = Int(Date().timeIntervalSince(t) * 1000)
                 }
                 self.hal = .konusuyor
-                self.durumYazisi = "Konuşuyorum"
+                self.durumYazisi = ara ? "Düşünüyorum" : "Konuşuyorum"
             }
         }
 

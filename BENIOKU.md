@@ -283,13 +283,15 @@ Tek tek de çalıştırılabilir: `POST /api/toplu/ozet` gövdesine
 Adres **Tailscale** ile veriliyor ve bir daha değişmiyor. Tailnet yalnızca
 kendi cihazlarına açık, herkese açık bir adres değil.
 
-**Senin sabit adresin:**
+**Kendi adresini öğrenmek için** `telefon.ps1` çalıştır; Tailscale adını ve
+parolayı yazdırır. Biçim şöyle:
 
 ```
-http://desktop-n2t5nmc.tail8fd4f5.ts.net:8770
+http://<bilgisayar-adi>.<tailnet>.ts.net:8770
 ```
 
-Parolayı görmek için `telefon.ps1` çalıştır (ya da `data/parola.txt`).
+Adres depoya yazılmıyor — depo herkese açık, tailnet adı da makineni
+adlandıran bir bilgi. Parola `data/parola.txt` içinde ve o da depoda değil.
 
 ### iPhone'da
 
@@ -306,7 +308,7 @@ varsayılan olarak kapalı:
 
 1. https://login.tailscale.com/admin/dns adresini aç
 2. **HTTPS Certificates** → Enable
-3. `telefon.ps1` çalıştır — bu kez `https://desktop-n2t5nmc.tail8fd4f5.ts.net`
+3. `telefon.ps1` çalıştır — bu kez `https://<bilgisayar-adi>.<tailnet>.ts.net`
    verecek (port yok)
 
 ### Sunucunun dinleme adresi

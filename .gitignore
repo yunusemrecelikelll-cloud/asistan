@@ -32,3 +32,8 @@ DerivedData/
 # ── İşletim sistemi ──────────────────────────────────────────────────────
 .DS_Store
 Thumbs.db
+
+# ── XcodeGen ürünü ───────────────────────────────────────────────────────
+# apple/project.yml kaynak; .xcodeproj ondan üretiliyor.
+apple/Nova.xcodeproj/
+apple/Uretilen/
