@@ -10,7 +10,10 @@ import SwiftUI
 struct PlanGorunumu: View {
 
     @StateObject private var model = PlanModeli()
+    @ObservedObject private var olaylar = Olaylar.ortak
     @State private var yeniGorev = false
+    /// Hafta bölümünde açık olan gün. Aynı anda tek gün açık kalıyor.
+    @State private var acikGun: String?
 
     var body: some View {
         List {
@@ -36,6 +39,12 @@ struct PlanGorunumu: View {
         }
         .refreshable { await model.yenile() }
         .task { await model.yenile() }
+        // Masaüstünde bir görev değişince telefon da tazelensin.
+        .onChange(of: olaylar.sayac) { _, _ in
+            if olaylar.ilgilendirir(["gorev", "plan"]) {
+                Task { await model.yenile() }
+            }
+        }
         .sheet(isPresented: $yeniGorev) {
             GorevDuzenle(varsayilanTarih: model.bugun?.tarih
                          ?? Bicim.tarih(Date())) {
@@ -90,17 +99,56 @@ struct PlanGorunumu: View {
         }
     }
 
+    /// Haftanın günleri — açılınca O GÜNÜN İŞLERİ görünüyor.
+    ///
+    /// Önceden yalnızca gün adı ve iş sayısı vardı: "Çarşamba — 4 iş".
+    /// Kullanıcı hangi işler olduğunu göremiyordu, yani hafta bölümü
+    /// aslında hiçbir soruyu cevaplamıyordu. `/api/hafta` görevleri zaten
+    /// dolu gönderiyor, ek uca gerek yok.
+    ///
+    /// Aynı anda tek gün açık: telefonda yedi günün hepsi açılınca liste
+    /// okunmaz uzunlukta oluyor.
     private var haftaBolumu: some View {
         Section("Hafta") {
             ForEach(model.hafta?.gunler ?? []) { gun in
-                let n = gun.gorevler?.count ?? 0
-                HStack {
-                    Text(gun.gun)
-                    Spacer()
-                    Text(n == 0 ? "boş" : "\(n) iş")
-                        .font(.caption)
-                        .foregroundStyle(n == 0 ? .tertiary : .secondary)
+                DisclosureGroup(
+                    isExpanded: Binding(
+                        get: { acikGun == gun.tarih },
+                        set: { acikGun = $0 ? gun.tarih : nil })
+                ) {
+                    let gorevler = gun.gorevler ?? []
+                    if gorevler.isEmpty {
+                        Text("Bu gün için görev yok.")
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
+                    // Buradaki satırlar da tam işlevli: haftanın herhangi
+                    // bir gününde kaydırarak başlat/tamamla/ertele/sil.
+                    ForEach(gorevler) { g in
+                        GorevSatiri(gorev: g, model: model)
+                    }
+                } label: {
+                    haftaEtiketi(gun)
                 }
+            }
+        }
+    }
+
+    private func haftaEtiketi(_ gun: HaftaGunu) -> some View {
+        let n = gun.gorevler?.count ?? 0
+        return HStack(spacing: 8) {
+            VStack(alignment: .leading, spacing: 1) {
+                Text(gun.gun).font(.subheadline)
+                Text(gun.tarih).font(.caption2).foregroundStyle(.tertiary)
+            }
+            Spacer()
+            if let k = gun.karne, k.toplam > 0 {
+                Text("\(k.tamam)/\(k.toplam)")
+                    .font(.caption.monospacedDigit())
+                    .foregroundStyle(k.kacirildi > 0 ? .red : .secondary)
+            } else {
+                Text(n == 0 ? "boş" : "\(n) iş")
+                    .font(.caption)
+                    .foregroundStyle(n == 0 ? .tertiary : .secondary)
             }
         }
     }

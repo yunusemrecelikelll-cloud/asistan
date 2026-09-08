@@ -4,6 +4,7 @@ import SwiftUI
 /// Projeler — hangi işler var, hangisi diskte duruyor.
 struct ProjelerGorunumu: View {
 
+    @ObservedObject private var olaylar = Olaylar.ortak
     @State private var projeler: [Proje] = []
     @State private var yukleniyor = true
     @State private var hata: String?
@@ -17,24 +18,33 @@ struct ProjelerGorunumu: View {
                 Text("Proje bulunamadı.")
                     .font(.subheadline).foregroundStyle(.secondary)
             }
+            // Satıra dokununca projenin içi açılıyor: git durumu, brifing,
+            // geçmiş oturumlar, düzenlenebilir not.
             ForEach(projeler) { p in
-                VStack(alignment: .leading, spacing: 3) {
-                    HStack {
-                        Text(p.ad).font(.subheadline)
-                        Spacer()
-                        if !p.diskteVar {
-                            Text("diskte yok")
-                                .font(.caption2).foregroundStyle(.orange)
-                        } else if let n = p.oturumSayisi, n > 0 {
-                            Text("\(n) oturum")
-                                .font(.caption2).foregroundStyle(.tertiary)
+                NavigationLink {
+                    ProjeDetayGorunumu(proje: p)
+                } label: {
+                    VStack(alignment: .leading, spacing: 3) {
+                        HStack {
+                            Text(p.ad).font(.subheadline)
+                            Spacer()
+                            if !p.diskteVar {
+                                Text("diskte yok")
+                                    .font(.caption2).foregroundStyle(.orange)
+                            } else if let n = p.oturumSayisi, n > 0 {
+                                Text("\(n) oturum")
+                                    .font(.caption2).foregroundStyle(.tertiary)
+                            }
+                        }
+                        if let n = p.notMetni, !n.isEmpty {
+                            Text(n)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .lineLimit(2)
                         }
                     }
-                    if let n = p.notMetni, !n.isEmpty {
-                        Text(n).font(.caption).foregroundStyle(.secondary)
-                    }
+                    .padding(.vertical, 1)
                 }
-                .padding(.vertical, 1)
             }
         }
         .listStyle(.insetGrouped)
@@ -42,6 +52,11 @@ struct ProjelerGorunumu: View {
         .navigationBarTitleDisplayMode(.inline)
         .refreshable { await yukle() }
         .task { await yukle() }
+        .onChange(of: olaylar.sayac) { _, _ in
+            if olaylar.ilgilendirir(["proje"]) {
+                Task { await yukle() }
+            }
+        }
     }
 
     private func yukle() async {
