@@ -283,6 +283,12 @@ public actor Api {
                                zamanAsimi: 45)
     }
 
+    /// Ara ses klipleri seçili ses için hazır mı. Ses değiştikten sonra
+    /// yoklanıyor; sabit süre tahmin etmekten iyi.
+    public func araSesDurum() async throws -> AraSesDurumu {
+        try await coz(AraSesDurumu.self, "api/ara-ses/durum")
+    }
+
     // MARK: - Sunucu ayarları
 
     public func sunucuAyarlari() async throws -> SunucuAyarlari {

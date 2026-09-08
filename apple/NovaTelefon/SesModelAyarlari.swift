@@ -24,6 +24,7 @@ struct SesAyarBolumu: View {
     /// Ses değişince sunucu ara sesleri yeniden üretiyor; o sürede hazır
     /// cevaplar devre dışı. Kullanıcı "bozuldu" sanmasın diye söylüyoruz.
     @State private var hazirlaniyor = false
+    @State private var hazirYuzde: Int?
 
     @State private var adDuzenlenen: Ses?
     @State private var yeniAd = ""
@@ -44,8 +45,11 @@ struct SesAyarBolumu: View {
                 satir(s)
             }
             if hazirlaniyor {
-                Label("Yeni sesle hazırlanıyor — kısa cevaplar birkaç "
-                      + "saniye sonra devreye girecek.",
+                Label(hazirYuzde.map {
+                          "Yeni sesle hazırlanıyor — %\($0). Kısa cevaplar "
+                          + "bitince devreye girecek."
+                      } ?? "Yeni sesle hazırlanıyor — kısa cevaplar birkaç "
+                          + "saniye sonra devreye girecek.",
                       systemImage: "hourglass")
                     .font(.caption).foregroundStyle(.secondary)
             }
@@ -143,16 +147,37 @@ struct SesAyarBolumu: View {
             try await Api.ortak.sesSec(s.anahtar)
             hata = nil
             await yukle()
-            hazirlaniyor = true
-            // Sunucu ara sesleri arka planda üretiyor; bitişini bildiren
-            // bir uç yok, o yüzden notu süreyle kaldırıyoruz.
-            Task {
-                try? await Task.sleep(for: .seconds(40))
-                hazirlaniyor = false
-            }
+            Task { await hazirlanmayiIzle() }
         } catch {
             hata = (error as? Api.Hata)?.errorDescription
                 ?? error.localizedDescription
+        }
+    }
+
+    /// Ara seslerin üretimini yokla ve ilerlemeyi göster.
+    ///
+    /// Üretim makineye göre 25-60 saniye sürüyor; sabit süre saymak ya
+    /// erken kalkıyor ya boşuna bekletiyordu. Sunucu artık gerçeği
+    /// söylüyor (`/api/ara-ses/durum`).
+    private func hazirlanmayiIzle() async {
+        hazirlaniyor = true
+        hazirYuzde = nil
+        defer { hazirlaniyor = false; hazirYuzde = nil }
+
+        let baslangic = Date()
+        // Üst sınır: sunucu takılırsa not sonsuza kadar durmasın.
+        while Date().timeIntervalSince(baslangic) < 180 {
+            do {
+                let d = try await Api.ortak.araSesDurum()
+                hazirYuzde = d.yuzde
+                if d.hazirMi { return }
+            } catch {
+                // Sunucu bu ucu bilmiyorsa (eski sürüm) ya da ağ gittiyse
+                // eski davranışa dön: kabaca bekle ve notu kaldır.
+                try? await Task.sleep(for: .seconds(40))
+                return
+            }
+            try? await Task.sleep(for: .seconds(3))
         }
     }
 

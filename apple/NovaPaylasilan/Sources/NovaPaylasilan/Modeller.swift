@@ -469,3 +469,18 @@ public struct SunucuAyarlari: Decodable, Equatable, Sendable {
         return d.isEmpty ? varsayilan : d
     }
 }
+
+/// Ara ses klipleri (selamlaşma, "bir saniye") seçili ses için hazır mı.
+///
+/// Ses değişince sunucu bunları yeniden üretiyor. Üretim makineye göre
+/// 25-60 saniye sürüyor, o yüzden telefon sabit süre tahmin etmek yerine
+/// bu ucu yokluyor.
+public struct AraSesDurumu: Decodable, Equatable, Sendable {
+    public let ses: String?
+    public let hazir: EsnekBool?
+    public let uretilen: Int?
+    public let beklenen: Int?
+    public let yuzde: Int?
+
+    public var hazirMi: Bool { hazir.deger(false) }
+}
