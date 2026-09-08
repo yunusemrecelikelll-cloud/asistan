@@ -45,24 +45,26 @@ workflows:
     environment:
       xcode: latest
       ios_signing:
-        # `bundle_identifier` BİLEREK VERİLMİYOR.
+        # Elle `app-store-connect fetch-signing-files` çağırmak yerine bu
+        # blok: sertifikanın ÖZEL ANAHTARINI da sağlayan tek yol. Elle
+        # çağırınca anahtar olmuyor ve "Cannot save Signing Certificates
+        # without certificate private key" ile düşüyor — anahtar
+        # Codemagic'in tarafında duruyor, portaldaki tek dağıtım
+        # sertifikasını o üretmiş (Created by: API Key 62fb5e58-...).
         #
-        # Verilirse yalnızca o kimliğin profili çekiliyor. Saat uygulaması
-        # bir uzantı değil, KENDİ kimliği olan ayrı bir uygulama
-        # (com.asistan.nova.watchkitapp); tek kimlik verilince onunki
-        # dışarıda kalıyor. Hiç verilmeyince Codemagic bu dağıtım tipindeki
-        # bütün profilleri çekiyor: NOVA + NOVA Watch. (KPSS'inki de iniyor;
-        # sadece indirilmiş bir dosya, o projeye dokunulmuyor.)
+        # `bundle_identifier` zorunlu; Codemagic ikisi eksikse yapılandırmayı
+        # doğrulamadan geçirmiyor ("distribution type and bundle identifier
+        # are both required").
         #
-        # Bu blok elle `app-store-connect fetch-signing-files` çağırmaktan
-        # farklı: sertifikanın ÖZEL ANAHTARINI da sağlıyor. Elle çağırınca
-        # anahtar olmuyor ve "Cannot save Signing Certificates without
-        # certificate private key" ile düşüyor — anahtar Codemagic'in kendi
-        # tarafında duruyor (portaldaki sertifikayı o üretmiş).
+        # Saat uygulamasının kendi kimliği var (com.asistan.nova.watchkitapp)
+        # ama burada onu ayrıca yazmak gerekmiyor: eşleştirme
+        # `--strict-match-identifier` verilmedikçe öntakı bazlı, yani
+        # com.asistan.nova hem telefonun hem saatin profilini kapsıyor.
         #
         # Yeni sertifika ÜRETMİYOR: mobil/codemagic.yaml aylardır aynı
-        # hesapta bu yolla derliyor ve hesapta hâlâ tek dağıtım sertifikası var.
+        # hesapta bu yolla derliyor, hesapta hâlâ tek dağıtım sertifikası var.
         distribution_type: app_store
+        bundle_identifier: com.asistan.nova
 
     scripts:
       - name: XcodeGen kur
