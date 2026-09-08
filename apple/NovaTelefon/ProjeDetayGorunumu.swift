@@ -65,7 +65,9 @@ struct ProjeDetayGorunumu: View {
                 Label(d.diskteVar ? "Diskte" : "Diskte yok",
                       systemImage: d.diskteVar ? "internaldrive" : "questionmark.folder")
                     .font(.subheadline)
-                    .foregroundStyle(d.diskteVar ? .primary : .orange)
+                    // Color olarak yazmak şart: `.primary` HierarchicalShapeStyle,
+                    // `.orange` Color; ternary'de tip birleşmiyor.
+                    .foregroundStyle(d.diskteVar ? Color.primary : Color.orange)
                 Spacer()
                 if let n = d.oturumSayisi, n > 0 {
                     Text("\(n) oturum")
