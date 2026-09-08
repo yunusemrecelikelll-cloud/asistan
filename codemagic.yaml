@@ -44,15 +44,25 @@ workflows:
 
     environment:
       xcode: latest
-      # `ios_signing` KULLANILMIYOR — bilerek.
-      #
-      # O blok tek bir `bundle_identifier` alıyor ve yalnızca onun profilini
-      # çekiyor. Saat uygulaması bir uzantı değil, KENDİ kimliği olan ayrı
-      # bir uygulama (com.asistan.nova.watchkitapp); tek kimlik verince
-      # onunki hiç çekilmiyor ve derleme daha makineye inmeden
-      # "No matching profiles found" ile düşüyor.
-      #
-      # Bunun yerine aşağıda ikisini de açıkça çekiyoruz.
+      ios_signing:
+        # `bundle_identifier` BİLEREK VERİLMİYOR.
+        #
+        # Verilirse yalnızca o kimliğin profili çekiliyor. Saat uygulaması
+        # bir uzantı değil, KENDİ kimliği olan ayrı bir uygulama
+        # (com.asistan.nova.watchkitapp); tek kimlik verilince onunki
+        # dışarıda kalıyor. Hiç verilmeyince Codemagic bu dağıtım tipindeki
+        # bütün profilleri çekiyor: NOVA + NOVA Watch. (KPSS'inki de iniyor;
+        # sadece indirilmiş bir dosya, o projeye dokunulmuyor.)
+        #
+        # Bu blok elle `app-store-connect fetch-signing-files` çağırmaktan
+        # farklı: sertifikanın ÖZEL ANAHTARINI da sağlıyor. Elle çağırınca
+        # anahtar olmuyor ve "Cannot save Signing Certificates without
+        # certificate private key" ile düşüyor — anahtar Codemagic'in kendi
+        # tarafında duruyor (portaldaki sertifikayı o üretmiş).
+        #
+        # Yeni sertifika ÜRETMİYOR: mobil/codemagic.yaml aylardır aynı
+        # hesapta bu yolla derliyor ve hesapta hâlâ tek dağıtım sertifikası var.
+        distribution_type: app_store
 
     scripts:
       - name: XcodeGen kur
@@ -66,26 +76,10 @@ workflows:
           xcodegen generate --spec project.yml
           xcodebuild -list -project Nova.xcodeproj
 
-      - name: İmza dosyalarını çek
-        # İKİ bundle ID için de profil çekiliyor: telefon ve saat.
-        #
-        # `--create` BİLEREK yok. Profiller ve sertifika Apple tarafında
-        # zaten hazır (App Store Connect API ile doğrulandı: ikisi de
-        # ACTIVE). `--create` verirsek Codemagic eksik gördüğünde yeni
-        # sertifika üretmeye kalkabilir; hesabın 3 dağıtım sertifikası
-        # sınırı var ve havuz KPSS ile ortak.
-        script: |
-          set -e
-          keychain initialize
-          app-store-connect fetch-signing-files "com.asistan.nova" \
-            --type IOS_APP_STORE --platform IOS
-          app-store-connect fetch-signing-files "com.asistan.nova.watchkitapp" \
-            --type IOS_APP_STORE --platform IOS
-          keychain add-certificates
-
-      - name: Profilleri projeye bağla
-        # Projeyi indirilen profillere bağlar ve
-        # /Users/builder/export_options.plist dosyasını kendisi yazar.
+      - name: İmza profillerini kur
+        # Yukarıdaki `ios_signing` profilleri ve sertifikayı makineye zaten
+        # indirdi. Bu adım projeyi o profillere bağlıyor ve
+        # /Users/builder/export_options.plist dosyasını kendisi yazıyor.
         script: |
           set -e
           cd apple
