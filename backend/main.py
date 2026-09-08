@@ -538,7 +538,10 @@ Kurallar:
 - Türkçe, kısa ve doğal konuş. EN FAZLA 3 KISA CÜMLE. Uzun cevap yok.
 - Elindeki veriye dayan. Bilmediğin şeyi uydurma; bilmiyorsan söyle.
 - Madde işareti, başlık, emoji kullanma — bu metin sesli okunacak.
-- Girişe, özete, "elbette/tabii" gibi dolgulara girme; doğrudan cevabı ver."""
+- Girişe, özete, "elbette/tabii" gibi dolgulara girme; doğrudan cevabı ver.
+- Sana verilen DURUM metninden BAHSETME. "listede", "dosyada", "verdiğim
+  bilgilerde", "kayıtlara göre" deme; bunları zaten biliyormuş gibi konuş.
+- Sayı ve saat uydurma. DURUM'da olmayan bir rakamı söyleme."""
 
 
 def _planlama_ozeti(e: dict, sonuc: dict) -> str:
@@ -589,6 +592,46 @@ def _sohbet_baglami(metin: str) -> str:
     for g in prog["gorevler"][:6]:
         satirlar.append(f"- {g['saat']} {g['baslik']} [{g['durum']}]")
 
+    # ── Yarın ────────────────────────────────────────────────────────
+    #
+    # Eskiden bağlamda YALNIZCA bugün vardı. "Yarın ne var" diye
+    # sorulduğunda model elinde veri olmadığı için ya "bilmiyorum" diyor ya
+    # da uyduruyordu. Yarın ayrı bir başlık altında veriliyor ki bugünle
+    # karışmasın.
+    from datetime import date, timedelta
+
+    try:
+        yarin = (date.fromisoformat(t) + timedelta(days=1)).isoformat()
+        yg = store.gorevler(tarih=yarin)
+        if yg:
+            satirlar.append(f"YARIN ({yarin}) {len(yg)} iş var:")
+            for g in yg[:8]:
+                satirlar.append(
+                    f"- {g['saat']} {g['baslik']}"
+                    + (f" ({g['proje_ad']})" if g.get("proje_ad") else ""))
+        else:
+            satirlar.append(f"YARIN ({yarin}) planlanmış iş yok.")
+    except Exception:
+        pass
+
+    # ── Haftanın kalanı ──────────────────────────────────────────────
+    #
+    # Gün gün dökmüyoruz; sayı yeter. Bağlam uzadıkça küçük model
+    # dağılıyor, önemli olan "önümüzde ne kadar iş var" bilgisi.
+    try:
+        bas = (date.fromisoformat(t) + timedelta(days=2)).isoformat()
+        son = (date.fromisoformat(t) + timedelta(days=7)).isoformat()
+        kalan = store.gorevler(tarih=bas, bitis=son)
+        if kalan:
+            gunler: dict[str, int] = {}
+            for g in kalan:
+                gunler[g["tarih"]] = gunler.get(g["tarih"], 0) + 1
+            satirlar.append(
+                "Sonraki günler: "
+                + ", ".join(f"{a} {b} iş" for a, b in sorted(gunler.items())))
+    except Exception:
+        pass
+
     try:
         satirlar.append(duzen.ozet())
     except Exception:
@@ -601,10 +644,37 @@ def _sohbet_baglami(metin: str) -> str:
     except Exception:
         pass
 
-    aktif = store.aktif_projeler()
-    if aktif:
-        satirlar.append("Aktif projeler: "
-                        + ", ".join(p["ad"] for p in aktif[:10]))
+    # ── Projeler ─────────────────────────────────────────────────────
+    #
+    # Yalnızca ad listesi vermek yetmiyordu: "hangi projede ne var"
+    # sorusuna model ad listesinden cevap uyduruyordu. Türü ve durumu da
+    # veriyoruz; hepsini değil, en çok dokunulan onunu.
+    try:
+        aktif = store.aktif_projeler()
+        if aktif:
+            satirlar.append(f"Aktif projeler ({len(aktif)} tane):")
+            for p in aktif[:10]:
+                parca = [p["ad"]]
+                if p.get("tur") and p["tur"] != "kod":
+                    parca.append(p["tur"])
+                if p.get("not_metni"):
+                    parca.append(str(p["not_metni"])[:60])
+                satirlar.append("- " + " — ".join(parca))
+    except Exception:
+        pass
+
+    # ── Atölye ───────────────────────────────────────────────────────
+    try:
+        bos = [y["ad"] for y in store.yazicilar() if y["durum"] == "bos"]
+        if bos:
+            satirlar.append(f"Boş yazıcılar: {', '.join(bos)}")
+        bekleyen = store.dosyalar(durum="bekliyor")
+        if bekleyen:
+            satirlar.append(
+                f"Baskıya verilecek {len(bekleyen)} dosya var: "
+                + ", ".join(d["ad"] for d in bekleyen[:5]))
+    except Exception:
+        pass
 
     return "DURUM:\n" + "\n".join(satirlar) + f"\n\nKullanıcı: {metin}"
 

@@ -171,15 +171,82 @@ public actor Api {
         return try await coz(Sarmal.self, "api/projeler").projeler
     }
 
+    public func projeDetay(_ id: Int) async throws -> ProjeDetay {
+        try await coz(ProjeDetay.self, "api/projeler/\(id)")
+    }
+
+    @discardableResult
+    public func projeNot(_ id: Int, not: String) async throws -> Data {
+        let g = try JSONEncoder().encode(["not_metni": not])
+        return try await istek("api/projeler/\(id)/not", metot: "POST",
+                               govde: g)
+    }
+
     // MARK: - Yaşam
 
     public func yasam() async throws -> YasamOzeti {
         try await coz(YasamOzeti.self, "api/yasam")
     }
 
+    /// Serbest cümleyle kayıt: "dün 6 saat uyudum, kahveye 45 lira verdim".
+    @discardableResult
+    public func yasamMetin(_ metin: String) async throws -> Data {
+        let g = try JSONEncoder().encode(["metin": metin])
+        return try await istek("api/yasam/metin", metot: "POST", govde: g)
+    }
+
+    // MARK: - Atölye
+
+    public func atolye() async throws -> Atolye {
+        try await coz(Atolye.self, "api/atolye")
+    }
+
+    public func dosyalar() async throws -> Dosyalar {
+        try await coz(Dosyalar.self, "api/dosyalar")
+    }
+
+    @discardableResult
+    public func dosyaTara() async throws -> Data {
+        try await istek("api/dosyalar/tara", metot: "POST")
+    }
+
+    @discardableResult
+    public func dosyaBitti(_ id: Int) async throws -> Data {
+        let g = try JSONEncoder().encode(["dosya_id": id])
+        return try await istek("api/dosya/bitti", metot: "POST", govde: g)
+    }
+
+    @discardableResult
+    public func dosyaGeri(_ id: Int) async throws -> Data {
+        let g = try JSONEncoder().encode(["dosya_id": id])
+        return try await istek("api/dosya/geri", metot: "POST", govde: g)
+    }
+
     // MARK: - Koç
 
     public func koc() async throws -> KocOzeti {
         try await coz(KocOzeti.self, "api/koc")
+    }
+
+    public func aliskanliklar() async throws -> AliskanlikOzeti {
+        try await coz(AliskanlikOzeti.self, "api/aliskanliklar")
+    }
+
+    @discardableResult
+    public func aliskanlikIsaret(_ id: Int, yapildi: Bool) async throws -> Data {
+        struct G: Encodable {
+            let aliskanlik_id: Int
+            let yapildi: Bool
+        }
+        let g = try JSONEncoder().encode(G(aliskanlik_id: id,
+                                           yapildi: yapildi))
+        return try await istek("api/aliskanlik/isaret", metot: "POST",
+                               govde: g)
+    }
+
+    // MARK: - Rapor
+
+    public func rapor() async throws -> Rapor {
+        try await coz(Rapor.self, "api/rapor")
     }
 }

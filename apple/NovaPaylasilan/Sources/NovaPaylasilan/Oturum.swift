@@ -203,6 +203,14 @@ public final class Oturum: ObservableObject {
             }
         }
 
+        // Sunucu bir şey değiştiğinde haber veriyor; açık ekranlar bunu
+        // izleyip kendini yeniliyor. Eskiden bu çerçeveler alınıp
+        // atılıyordu, dolayısıyla masaüstünde yapılan değişiklik telefona
+        // ancak elle çekince yansıyordu.
+        baglanti.olayGeldi = { tur, _ in
+            Task { @MainActor in Olaylar.ortak.bildir(tur) }
+        }
+
         baglanti.turBitti = { [weak self] in
             Task { @MainActor in
                 guard let self else { return }

@@ -37,11 +37,15 @@ struct YanBar: View {
                     } label: {
                         Label("Yaşam", systemImage: "heart")
                     }
+                    NavigationLink {
+                        AtolyeGorunumu()
+                    } label: {
+                        Label("Atölye", systemImage: "printer")
+                    }
                 }
 
                 // Bunların henüz ekranı yok; soru olarak duruyorlar.
                 Section("Sor") {
-                    satir("Atölye", "printer", "yazıcılar ne durumda")
                     satir("Koç", "figure.run", "koç yorumu yap")
                     satir("Rapor", "chart.bar", "genel durum raporu ver")
                 }

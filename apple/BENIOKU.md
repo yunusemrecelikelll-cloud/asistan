@@ -172,16 +172,25 @@ apple/
 │       ├── SesCalar.swift          boşluksuz sıralı çalma + WAV/mp3/AAC çözme
 │       ├── SesSikistirici.swift    saate giden sesi AAC'ye çevirir
 │       ├── Ayarlar.swift           adresler + Keychain'de parola (SADECE telefon)
+│       ├── Api.swift               HTTP ucları — plan, projeler, yaşam, atölye
+│       ├── Modeller.swift          sunucu kayıtlarının Swift karşılığı
+│       ├── Bildirimler.swift       yerel bildirim (APNs değil)
 │       └── Oturum.swift            arayüzün bağlandığı tek durum nesnesi
 ├── NovaTelefon/
 │   ├── NovaTelefonApp.swift
 │   ├── AnaGorunum.swift            küre + döküm + konuşma düğmesi
 │   ├── KureGorunumu.swift          neon küre (masaüstündekinin eşi)
 │   ├── YanBar.swift                bölümler + ayarlar
+│   ├── PlanGorunumu.swift          bugün + hafta + karne
+│   ├── PlanModeli.swift            plan ekranının durumu
+│   ├── GorevDuzenle.swift          yeni görev
+│   ├── ListeGorunumleri.swift      projeler, yaşam
+│   ├── AtolyeGorunumu.swift        yazıcılar + "3d Projeler" dosyaları
 │   └── SaatRolesi.swift            saat için röle (AAC + dilimleme)
 └── NovaSaat/
     ├── NovaSaatApp.swift
     ├── SaatGorunumu.swift          küçük küre + tek düğme
+    ├── EkranAcik.swift             konuşurken ekran sönmesin
     └── RoleTasiyici.swift          telefon üzerinden taşıma (tek yol)
 ```
 
