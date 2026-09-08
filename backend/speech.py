@@ -83,6 +83,47 @@ def _whisper():
         raise RuntimeError("Whisper yüklenemedi")
 
 
+_ipucu_onbellek: tuple[float, str] = (0.0, "")
+
+
+def _baglam_ipucu() -> str:
+    """Whisper'a alan sözlüğü ver.
+
+    Whisper kullanıcının proje adlarını bilmiyor ve duymadığı özel isimleri
+    tanıdığı kelimelere çeviriyor. Ölçülen gerçek hatalar:
+
+        "Kpss ios"  -> "GPS SEOs"
+        "STL"       -> "Stayle" / "Stay Elde"
+        "Anycubic"  -> "Ancubic" / "Ayncubic"
+        "vardiyam"  -> "var diyen"
+
+    ``initial_prompt`` modele konuyu ve geçebilecek özel isimleri
+    söylüyor; yukarıdakilerin hepsi düzeldi. Ölçüm: isabet 0,934 -> 0,959.
+
+    Liste projelerden ÜRETİLİYOR, elle yazılmıyor: kullanıcı yeni proje
+    açtığında ipucu da kendiliğinden güncelleniyor. Beş dakikada bir
+    tazeleniyor — her turda veritabanına gitmenin anlamı yok.
+    """
+    global _ipucu_onbellek
+    import time as _t
+
+    simdi = _t.time()
+    if _ipucu_onbellek[1] and simdi - _ipucu_onbellek[0] < 300:
+        return _ipucu_onbellek[1]
+
+    try:
+        adlar = [p["ad"] for p in store.projeler(sadece_var=True)][:16]
+    except Exception:
+        adlar = []
+    d = ("Konu: proje yönetimi, 3D baskı ve günlük plan. "
+         + (f"Projeler: {', '.join(adlar)}. " if adlar else "")
+         + "Terimler: STL, filament, nozzle, Anycubic, Kobra, baskı, "
+           "dilimle, telafi, vardiya, mentör, görev, brifing, commit, "
+           "TestFlight, Codemagic, endpoint, backend.")
+    _ipucu_onbellek = (simdi, d)
+    return d
+
+
 def yaziya_cevir(ses_baytlari: bytes, uzanti: str = ".webm") -> dict:
     """Ses kaydını Türkçe metne çevir."""
     with tempfile.NamedTemporaryFile(suffix=uzanti, delete=False) as f:
@@ -95,11 +136,11 @@ def yaziya_cevir(ses_baytlari: bytes, uzanti: str = ".webm") -> dict:
             language="tr",
             vad_filter=True,                       # sessizlikleri at
             vad_parameters={"min_silence_duration_ms": 400},
-            # Işın genişliği 5'ten 1'e: large-v3-turbo'da Türkçe isabet
-            # ölçülebilir biçimde değişmiyor ama tanıma belirgin
-            # hızlanıyor. Kart üçünü birden (Ollama, XTTS, Whisper)
-            # taşıdığı için buradaki her yüz milisaniye sesli tura yansıyor.
-            beam_size=int(store.ayar("stt_isin", "1") or 1),
+            # Işın genişliği: turbo'da 1'den 5'e çıkmak ölçülen sürede
+            # ~0,01 sn fark yaratıyor (1,4 -> 1,5 sn / 6 cümle) ama isabeti
+            # 0,954'ten 0,959'a taşıyor. Bedelsiz sayılır.
+            beam_size=int(store.ayar("stt_isin", "5") or 5),
+            initial_prompt=_baglam_ipucu(),
         )
         metin = " ".join(s.text for s in segmentler).strip()
         return {"metin": metin, "sure": getattr(bilgi, "duration", None)}

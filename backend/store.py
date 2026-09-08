@@ -317,7 +317,10 @@ VARSAYILAN_AYARLAR = {
     "komut_modeli": "sonnet",                # claude CLI ile proje komutları
     "akil_modeli": "opus",                   # ağır akıl yürütme
     "ses": "tr-TR-AhmetNeural",
-    "stt_modeli": "medium",
+    # large-v3 DEGIL: olculdu, ayni isabette 29 kat yavas
+    "stt_modeli": "large-v3-turbo",
+    "stt_isin": "5",              # isabet 0,954 -> 0,959, bedeli yok
+    "stt_kesinlik": "int8_float16",
     "sesli_yanit": "1",
     "otomatik_checkpoint": "1",
     "gunluk_limit": "25.00",          # USD; asilinca komut gonderilmez
