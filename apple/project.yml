@@ -10,7 +10,7 @@
 name: Nova
 
 options:
-  bundleIdPrefix: com.yunusemre.nova
+  bundleIdPrefix: com.asistan
   createIntermediateGroups: true
   deploymentTarget:
     iOS: "17.0"
@@ -47,7 +47,7 @@ targets:
         embed: true
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.yunusemre.nova
+        PRODUCT_BUNDLE_IDENTIFIER: com.asistan.nova
         PRODUCT_NAME: NOVA
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
         TARGETED_DEVICE_FAMILY: "1,2"
@@ -87,7 +87,7 @@ targets:
         product: NovaPaylasilan
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.yunusemre.nova.watchkitapp
+        PRODUCT_BUNDLE_IDENTIFIER: com.asistan.nova.watchkitapp
         PRODUCT_NAME: NOVA
         TARGETED_DEVICE_FAMILY: "4"
     info:
@@ -96,7 +96,7 @@ targets:
         CFBundleDisplayName: NOVA
         CFBundleShortVersionString: "$(MARKETING_VERSION)"
         WKApplication: true
-        WKCompanionAppBundleIdentifier: com.yunusemre.nova
+        WKCompanionAppBundleIdentifier: com.asistan.nova
         # Saat ag ayari tutmuyor ama mikrofonu kendisi kullaniyor.
         NSMicrophoneUsageDescription: >-
           Nova ile konuşmak için mikrofon gerekiyor.

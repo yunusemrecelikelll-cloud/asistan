@@ -1,0 +1,112 @@
+# Codemagic — imzalı IPA ve TestFlight.
+#
+# İş bölümü:
+#   GitHub Actions  → derleyiciden geçiyor mu (her itişte, ücretsiz, ~2 dk)
+#   Codemagic       → imzalı IPA + TestFlight (elle tetiklenir)
+#
+# Neden imzalama burada, GitHub'da değil:
+#
+# GitHub Actions'ta imzalamak için ya mevcut dağıtım sertifikasının .p12
+# dışa aktarımı gerekiyor (o da onu üreten Mac'in anahtar zincirinde —
+# burada Mac yok), ya da Xcode'un `-allowProvisioningUpdates` ile YENİ bir
+# sertifika üretmesine izin vermek. Apple hesabı en fazla 3 dağıtım
+# sertifikası tutuyor ve bu havuz KPSS projesiyle ortak; yeni sertifika
+# üretmek gereksiz risk. Codemagic'teki App Store Connect entegrasyonu
+# (4NJXFNWG7L) mevcut sertifikayı kullanıyor, yenisini üretmiyor.
+#
+# Aynı gerekçe mobil/codemagic.yaml içinde de yazılı; orada aylardır
+# sorunsuz çalışan yol bu.
+#
+# Neden ad-hoc değil: ad-hoc profilini Codemagic otomatik oluşturmuyor,
+# elle üretmek yeni bir dağıtım sertifikası istiyor. TestFlight'ta ise
+# kendi hesabın "internal tester" olduğu için Apple incelemesi yok,
+# derlemeden ~10 dk sonra telefona bildirim düşüyor.
+#
+# ÖN KOŞUL (bir kez): App Store Connect'te com.asistan.nova için uygulama
+# kaydı. "Prepare for Submission" durumunda kalabilir; App Store'a
+# yayınlamak zorunlu değil, TestFlight bundan bağımsız çalışıyor.
+
+workflows:
+  apple:
+    name: "NOVA — iPhone + Apple Watch (TestFlight)"
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+
+    # Elle tetikleniyor. Her itişte imzalı derleme almanın anlamı yok;
+    # derlemenin bozulup bozulmadığını GitHub Actions zaten söylüyor.
+    triggering:
+      events: []
+
+    integrations:
+      # Flutter uygulamasının da kullandığı App Store Connect API anahtarı.
+      # Ad, Codemagic > Settings > Integrations altındaki adla birebir aynı.
+      app_store_connect: 4NJXFNWG7L
+
+    environment:
+      xcode: latest
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.asistan.nova
+
+    scripts:
+      - name: XcodeGen kur
+        script: brew install xcodegen
+
+      - name: Xcode projesini üret
+        # .xcodeproj depoda tutulmuyor; apple/project.yml'den üretiliyor.
+        script: |
+          set -e
+          cd apple
+          xcodegen generate --spec project.yml
+          xcodebuild -list -project Nova.xcodeproj
+
+      - name: İmza profillerini kur
+        # Profilleri indirir, projeyi onlara bağlar ve
+        # /Users/builder/export_options.plist dosyasını kendisi yazar.
+        script: |
+          set -e
+          cd apple
+          xcode-project use-profiles --project "Nova.xcodeproj"
+
+      - name: Arşivle
+        script: |
+          set -e
+          cd apple
+          # Build numarası Unix zaman damgası: her derlemede kesin artar,
+          # TestFlight'ta "duplicate build number" çakışması olmaz.
+          BUILD_NO=$(date +%s)
+          echo "Build numarası: $BUILD_NO"
+          xcodebuild archive \
+            -project Nova.xcodeproj \
+            -scheme NovaTelefon \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath "$CM_BUILD_DIR/Nova.xcarchive" \
+            CURRENT_PROJECT_VERSION=$BUILD_NO \
+            MARKETING_VERSION=1.0.0
+
+      - name: IPA üret
+        script: |
+          set -e
+          xcodebuild -exportArchive \
+            -archivePath "$CM_BUILD_DIR/Nova.xcarchive" \
+            -exportOptionsPlist /Users/builder/export_options.plist \
+            -exportPath "$CM_BUILD_DIR/ipa"
+          ls -lh "$CM_BUILD_DIR/ipa"
+
+    artifacts:
+      - $CM_BUILD_DIR/ipa/*.ipa
+      - $CM_BUILD_DIR/Nova.xcarchive
+      - /tmp/xcodebuild_logs/*.log
+
+    publishing:
+      email:
+        recipients:
+          - yunusemrecelikelll@gmail.com
+        notify:
+          success: true
+          failure: true
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
+        # App Store incelemesine otomatik göndermez.
