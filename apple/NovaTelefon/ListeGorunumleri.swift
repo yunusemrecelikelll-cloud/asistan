@@ -98,6 +98,16 @@ struct YasamGorunumu: View {
         .task { await yukle() }
     }
 
+    private func yukle() async {
+        do {
+            kartlar = try await Api.ortak.yasam().kartlar
+            hata = nil
+        } catch {
+            hata = (error as? Api.Hata)?.errorDescription
+                ?? error.localizedDescription
+        }
+    }
+
     private func sayi(_ d: Double) -> String {
         d == d.rounded() ? String(Int(d)) : String(format: "%.1f", d)
     }
