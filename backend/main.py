@@ -746,6 +746,19 @@ def sohbet_akisi(metin: str):
         sistem=SOHBET_TALIMATI, azami_token=350)
 
 
+@app.post("/api/taslak")
+def taslak_olustur(istek: TaslakIstek) -> dict:
+    """Kullanıcının mesajını ayrıntılı göreve çevir ve ONAYA sun.
+
+    Hiçbir şey gönderilmez; kullanıcı onaylayana kadar bekler.
+
+    Masaüstü arayüzünün ana ucu. Bir yeniden düzenlemede sohbet_akisi ile
+    taslak_uret ARASINDA kaldığı için sessizce silinmişti; masaüstünde
+    Nova hiç yanıt vermez olmuştu.
+    """
+    return taslak_uret(istek)
+
+
 def taslak_uret(istek: TaslakIstek, hazir_niyet: dict | None = None) -> dict:
     """Uç noktanın gövdesi. Niyet dışarıda çözüldüyse tekrar çözülmez —
     WebSocket kanalı niyeti kendisi çözüp buraya veriyor, böylece sesli

@@ -300,6 +300,57 @@ ok("_iptal_edilenler" in inspect.getsource(dispatch.iptal),
    "iptal işaretleniyor — sonuç 'hata' ile ezilmiyor")
 
 
+print("\n[13] API uçları yerinde")
+
+# Bir yeniden düzenlemede POST /api/taslak sessizce silinmişti — masaüstü
+# arayüzünün ANA ucu. Sunucu sorunsuz açılıyor, testler geçiyor, ama
+# masaüstünde Nova hiç yanıt vermiyordu. Uç listesi artık kontrol ediliyor:
+# silinen bir uç testte görünür.
+import main as _m
+
+_uclar = {
+    (r.path, m)
+    for r in _m.app.routes
+    for m in getattr(r, "methods", set()) or {"WS"}
+}
+
+_ZORUNLU = [
+    # masaüstü arayüzü
+    ("/api/taslak", "POST"),
+    ("/api/taslak/onayla", "POST"),
+    ("/api/taslaklar", "GET"),
+    ("/api/komut", "POST"),
+    ("/api/mesajlar", "GET"),
+    ("/api/olaylar", "GET"),
+    ("/api/saglik", "GET"),
+    ("/api/ayarlar", "GET"),
+    ("/api/ayarlar", "POST"),
+    # telefon ve saat
+    ("/api/bugun", "GET"),
+    ("/api/hafta", "GET"),
+    ("/api/gorev", "POST"),
+    ("/api/projeler", "GET"),
+    ("/api/yasam", "GET"),
+    ("/api/atolye", "GET"),
+    ("/api/dosyalar", "GET"),
+    ("/api/koc", "GET"),
+    ("/api/rapor", "GET"),
+    ("/api/ses/durum", "GET"),
+    ("/api/ses/sec", "POST"),
+    ("/api/ara-ses/durum", "GET"),
+    ("/api/giris", "POST"),
+    ("/api/stt", "POST"),
+    ("/api/tts", "POST"),
+]
+
+_eksik = [f"{y} {m}" for y, m in _ZORUNLU if (y, m) not in _uclar]
+ok(not _eksik, f"zorunlu uçların hepsi kayıtlı ({len(_ZORUNLU)} uç)"
+   + (f" — EKSİK: {_eksik}" if _eksik else ""))
+
+_ws = [r.path for r in _m.app.routes if r.__class__.__name__ == "APIWebSocketRoute"]
+ok("/ws" in _ws, "WebSocket kanalı kayıtlı")
+
+
 print("\n" + "=" * 54)
 print(f"  {gecti} test geçti, {kaldi} kaldı")
 print("=" * 54)
