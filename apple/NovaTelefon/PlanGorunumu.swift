@@ -47,11 +47,14 @@ struct PlanGorunumu: View {
     // MARK: - Bölümler
 
     private func karneBolumu(_ g: Gun) -> some View {
-        Section {
+        // Karne isteğe bağlı: sunucu bazı uçlarda göndermiyor. Yoksa
+        // sayaçları sıfır göstermek, ekranı hiç çizmemekten iyi.
+        let k = g.karne
+        return Section {
             HStack(spacing: 18) {
-                sayac("tamam", g.karne.tamam, .green)
-                sayac("kalan", g.karne.kalan, .orange)
-                sayac("kaçtı", g.karne.kacirildi, .red)
+                sayac("tamam", k?.tamam ?? 0, .green)
+                sayac("kalan", k?.kalan ?? 0, .orange)
+                sayac("kaçtı", k?.kacirildi ?? 0, .red)
                 Spacer()
                 VStack(alignment: .trailing, spacing: 2) {
                     Text(g.gun).font(.subheadline.weight(.semibold))

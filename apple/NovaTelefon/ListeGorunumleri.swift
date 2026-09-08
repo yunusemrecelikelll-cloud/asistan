@@ -22,7 +22,7 @@ struct ProjelerGorunumu: View {
                     HStack {
                         Text(p.ad).font(.subheadline)
                         Spacer()
-                        if p.varMi == false {
+                        if !p.diskteVar {
                             Text("diskte yok")
                                 .font(.caption2).foregroundStyle(.orange)
                         } else if let n = p.oturumSayisi, n > 0 {
