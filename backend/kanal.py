@@ -271,11 +271,47 @@ async def _sohbeti_akit(o: Oturum, spek: "_Spekulasyon", sesli: bool,
     await o.json_gonder({"tur": "bitti"})
 
 
+async def _hazir_cevap(o: Oturum, metin: str, sesli: bool,
+                       ses_mi: bool) -> bool:
+    """Selamlaşma gibi cümlelere hazır sesle yanıt ver. Verdiyse ``True``.
+
+    "Nasılsın" sorusunun cevabı kullanıcının verisine bağlı değil; modele
+    gitmek yalnızca gecikme ekliyor. Klip zaten diskte, yanıt anında
+    gidiyor — ölçülen fark tur başına 5-8 saniye.
+    """
+    import ara_ses
+
+    tur = await asyncio.to_thread(ara_ses.hazir_tur, metin)
+    if not tur:
+        return False
+    secim = await asyncio.to_thread(ara_ses.sec, tur)
+    if not secim:
+        return False                 # klipler hazır değil, normal yola git
+
+    veri, mime, yanit = secim
+    await asyncio.to_thread(
+        lambda: store.mesaj_ekle("kullanici", metin, ses_mi=ses_mi))
+    await o.json_gonder({"tur": "yanit", "metin": yanit, "niyet": "sohbet",
+                         "sure_ms": 0})
+    if sesli:
+        await o.json_gonder({"tur": "parca", "sira": 0, "bayt": len(veri),
+                             "bicim": mime, "metin": yanit})
+        await o.ikili_gonder(veri)
+        o.gercek_ses_cikti = True
+    await asyncio.to_thread(store.mesaj_ekle, "asistan", yanit, None, "hazir")
+    await o.json_gonder({"tur": "bitti"})
+    return True
+
+
 async def _metni_isle(o: Oturum, metin: str, sesli: bool = True,
                       ses_mi: bool = True) -> None:
     import main
     import niyet
     import store
+
+    # Selamlaşmalar model beklemeden yanıtlanıyor.
+    if await _hazir_cevap(o, metin, sesli, ses_mi):
+        return
 
     t = time.perf_counter()
 

@@ -17,6 +17,7 @@ import gunluk
 gunluk.KOK = gecici / "gunluk"
 
 import dogal
+import speech
 
 store.kur()
 
@@ -105,8 +106,13 @@ kontrol("düşünme sesi eklendi", any(m.startswith("ııı") for m in metinler)
         metinler)
 kontrol("gülüş eklendi", any(m.startswith(("heh", "haha")) for m in metinler),
         metinler)
+# Klon motorunda hız kısılıyor: XTTS'te hız bir SENTEZ parametresi, 1.0'dan
+# uzaklaştıkça tını da kayıyor ve kullanıcı bunu "her cümlede farklı ses"
+# olarak duyuyor. İşaret hâlâ işini görüyor — parça yavaşlıyor — ama
+# sesin kimliğini bozacak kadar değil.
+yavas_esik = -4 if speech.motor() == "klon" else -10
 kontrol("yavaş kipi uygulandı",
-        any(x["hiz"] < -5 and "son uyarım" in x["metin"] for x in p),
+        any(x["hiz"] <= yavas_esik and "son uyarım" in x["metin"] for x in p),
         [(x["hiz"], x["metin"]) for x in p])
 kontrol("hiçbir parçada işaret kalmadı",
         not any("[" in m for m in metinler), metinler)
@@ -115,7 +121,8 @@ kontrol("her parçada duraklama var", all(x["sonra_ms"] > 0 for x in p))
 print("\n[6] vurgu işareti")
 p = dogal.parcala("Bugün üç iş var. [vurgu] Hiçbirini kaçırma.")
 vurgulu = [x for x in p if "Hiçbirini" in x["metin"]]
-kontrol("vurgulu parça yavaşladı", vurgulu and vurgulu[0]["hiz"] <= -10,
+kontrol("vurgulu parça yavaşladı",
+        vurgulu and vurgulu[0]["hiz"] <= yavas_esik,
         vurgulu)
 
 print("\n[7] üsluba göre tempo salınımı")

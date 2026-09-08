@@ -67,7 +67,110 @@ BEKLEME = [
     "Bakmaya devam ediyorum.",
 ]
 
-HAVUZLAR = {"ilk": ILK, "bekleme": BEKLEME}
+# ── Hazır sohbet cevapları ────────────────────────────────────────────
+#
+# "Nasılsın", "napıyorsun", "selam" gibi cümleler için modele gitmenin
+# hiçbir faydası yok: cevap kullanıcının verisine bağlı değil, ama tur yine
+# de konuşma tanıma + model + seslendirme yolunu bekletiyor. Bunlar da
+# önceden üretilip diskte duruyor; yanıt anında geliyor.
+#
+# Çeşitlilik şart: her seferinde aynı cümleyi duymak "kayıttan çalıyor"
+# hissini anında ele veriyor. Son kullanılanlar hatırlanıyor.
+
+SELAM = [
+    "Selam. Ne yapıyoruz?",
+    "Merhaba. Buradayım.",
+    "Selam, söyle bakalım.",
+    "Efendim, dinliyorum.",
+    "Merhaba. Nereden başlayalım?",
+    "Selam. Hazırım.",
+]
+
+NASILSIN = [
+    "İyiyim, sen nasılsın?",
+    "Buradayım, çalışıyorum. Sende ne var ne yok?",
+    "İyiyim. Senin günün nasıl gidiyor?",
+    "Fena değilim. Sen nasılsın?",
+    "İyiyim, teşekkürler. Bir işe mi bakalım?",
+    "Turp gibiyim. Sen anlat.",
+]
+
+NAPIYORSUN = [
+    "Seni bekliyordum. Ne yapalım?",
+    "Planına bakıyordum. Sormak istediğin bir şey var mı?",
+    "Boştayım, emrindeyim.",
+    "Buradayım işte. Bir şeye mi ihtiyacın var?",
+    "Seni dinliyorum, söyle.",
+]
+
+TESEKKUR = [
+    "Rica ederim.",
+    "Ne demek, her zaman.",
+    "Bir şey değil.",
+    "Sağ ol, sen de.",
+]
+
+VEDA = [
+    "Görüşürüz.",
+    "İyi çalışmalar.",
+    "Kendine iyi bak.",
+    "Buradayım, gerekirse seslen.",
+]
+
+HAVUZLAR = {"ilk": ILK, "bekleme": BEKLEME,
+            "selam": SELAM, "nasilsin": NASILSIN,
+            "napiyorsun": NAPIYORSUN, "tesekkur": TESEKKUR, "veda": VEDA}
+
+# Hangi cümle hangi havuza düşüyor. Kalıp eşleştirme BİLEREK: bu cümleler
+# kullanıcının verisine bakmıyor, modele sormanın tek getirisi gecikme
+# olurdu. Kalıba uymayan her şey normal yola gidiyor.
+_KALIPLAR = (
+    ("nasilsin", ("nasilsin", "nasil gidiyor", "iyi misin", "naber",
+                  "ne haber", "nasilsiniz")),
+    ("napiyorsun", ("napiyorsun", "ne yapiyorsun", "napiyon",
+                    "ne yapiyosun", "nolayim")),
+    ("tesekkur", ("tesekkur", "sagol", "sag ol", "eyvallah", "tesekkurler")),
+    ("veda", ("gorusuruz", "hosca kal", "iyi geceler", "bay bay",
+              "kendine iyi bak")),
+    ("selam", ("selam", "merhaba", "gunaydin", "iyi aksamlar",
+               "iyi gunler", "alo", "hey nova")),
+)
+
+
+def hazir_tur(metin: str) -> str | None:
+    """Bu cümle hazır cevaplı mı? Değilse ``None``.
+
+    Kısa tutuyoruz: "selam, bugün ne var" cümlesi selamlama değil, soru.
+    Uzunluk sınırı olmadan her cümlede selam kelimesi arayıp hazır cevap
+    dönmek asistanı sağır yapardı.
+    """
+    if store.ayar("hazir_cevap", "1") != "1":
+        return None
+    d = _sadelestir(metin)
+    # Selamlaşma cümlenin TAMAMI olmalı. "selam bugün planım ne" bir
+    # selamlama değil, soru; hazır cevapla karşılamak asistanı sağır yapar.
+    if not d or len(d) > 22 or len(d.split()) > 3:
+        return None
+    for tur, kaliplar in _KALIPLAR:
+        if any(k in d for k in kaliplar):
+            return tur
+    return None
+
+
+# Türkçeye özgü harfler. "ı" ve "İ" NFKD ile AYRIŞMIYOR — birleşik bir
+# aksan taşımıyorlar, ayrı kod noktaları. Elle çevirmezsek "nasılsın"
+# sadeleşince "naslsn" oluyor ve hiçbir kalıba uymuyor.
+_TR = str.maketrans({"ı": "i", "İ": "i", "I": "i",
+                     "ş": "s", "Ş": "s", "ğ": "g", "Ğ": "g",
+                     "ü": "u", "Ü": "u", "ö": "o", "Ö": "o",
+                     "ç": "c", "Ç": "c"})
+
+
+def _sadelestir(metin: str) -> str:
+    d = (metin or "").translate(_TR).lower()
+    d = unicodedata.normalize("NFKD", d)
+    d = "".join(c for c in d if not unicodedata.combining(c))
+    return re.sub(r"[^a-z0-9 ]+", " ", d).strip()
 
 # Uzun işlerde bekleme sesinin hangi saniyelerde çalınacağı. Aralık gittikçe
 # açılıyor: baştaki sessizlik en çok rahatsız eden yer, ama her üç saniyede

@@ -381,6 +381,7 @@ VARSAYILAN_AYARLAR = {
     # yedek — claude'a ulaşılamazsa ya da günlük sınır dolarsa.
     "sohbet_saglayici": "claude",       # claude | yerel
     "sohbet_claude_modeli": "sonnet",   # sonnet | opus | haiku
+    "hazir_cevap": "1",   # selam/nasilsin gibi cumleler hazir sesle
     "ara_ses": "1",                  # konusma bitince kisa "seni duydum" sesi
 }
 

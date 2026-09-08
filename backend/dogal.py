@@ -279,7 +279,11 @@ def ilk_parcayi_bol(parcalar: list[dict],
     if kesme is None:
         return parcalar
 
-    bas, kalan = metin[:kesme].strip(), metin[kesme:].strip()
+    # Askıda kalan virgülü atıyoruz: bölme noktası zaten bir duraklama,
+    # virgülü seslendirmeye vermek XTTS'te "cümle bitmedi" tonlaması
+    # üretiyor ve tuhaf duyuluyor.
+    bas = metin[:kesme].strip().rstrip(",;:").strip()
+    kalan = metin[kesme:].strip()
     if not bas or not kalan:
         return parcalar
 
@@ -360,8 +364,6 @@ def parcala(metin: str) -> list[dict]:
 
     # Tek tonda akmasın: uzun anlatımlarda cümleden cümleye hafif tempo
     # oynatıyoruz. Değerler küçük — abartınca sarhoş gibi duyuluyor.
-    # Salınım genişliği üsluba bağlı. Sakin kipte hafif; canlı kipte belirgin
-    # — asıl "robot değil" hissi buradan geliyor.
     if uslup() == "canli":
         hizlar, perdeler = (6, 16, -6, 12, -10, 4), (4, 9, -5, 7, -6, 2)
     elif uslup() == "sert":
@@ -374,7 +376,35 @@ def parcala(metin: str) -> list[dict]:
         p["hiz"] = hizlar[i % len(hizlar)]
         p["perde"] = perdeler[i % len(perdeler)]
 
-    return parcalar
+    # Motora göre kıs. Bu tablolar edge-tts için yazılmıştı; orada hız bir
+    # oynatma ayarı, tını değişmiyor. XTTS'te ise hız SENTEZ parametresi:
+    # 1.0'dan uzaklaştıkça sesin tınısı da kayıyor. "Canlı" üslupta ardışık
+    # cümleler +16 ile -10 arasında gidip geliyordu, yani %26'lık bir fark —
+    # kullanıcı bunu "her cümlede farklı ses" olarak duyuyor.
+    #
+    # Perdeyi klon motoru zaten kullanmıyor (ses_klon.seslendir yalnızca hız
+    # alıyor), o yüzden orada tek kaldıraç hız.
+    if _klon_mu():
+        for p in parcalar:
+            p["hiz"] = max(-5, min(5, round(p["hiz"] * 0.3)))
+            p["perde"] = 0
+
+    # Askıda kalan noktalama: parçanın sonundaki virgül XTTS'te cümle
+    # bitmemiş gibi tonlanıyor ve tuhaf duyuluyor. Duraklamayı zaten
+    # sonra_ms veriyor, virgülün kendisi gerekmiyor.
+    for p in parcalar:
+        p["metin"] = p["metin"].strip().rstrip(",;:").strip()
+    return [p for p in parcalar if p["metin"]]
+
+
+def _klon_mu() -> bool:
+    """Seslendirmeyi XTTS mi yapıyor?"""
+    try:
+        import speech
+
+        return speech.motor() == "klon"
+    except Exception:
+        return False
 
 
 def isaretleri_at(metin: str) -> str:
