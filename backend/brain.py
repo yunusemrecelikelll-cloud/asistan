@@ -164,6 +164,101 @@ def yerel_sohbet_akis(mesajlar: list[dict], model: str | None = None,
         yield kalan
 
 
+def claude_sohbet_akis(mesajlar: list[dict], model: str | None = None,
+                       sistem: str | None = None):
+    """Claude ile akışlı sohbet — CÜMLE cümle verir.
+
+    Neden yerel model değil: 4B'lik model bu işi yapamıyor. Aynı bağlam,
+    aynı soru ("bu hafta neye öncelik vermeliyim") ile ölçülen:
+
+        yerel qwen3.5:4b-tr   ilk cümle 16,8 sn — ve cevap yanlış
+        claude sonnet          ilk cümle  6,6 sn — doğru ve gerekçeli
+        claude opus            ilk cümle  7,3 sn — biraz daha derin
+
+    Yani Claude hem daha akıllı hem YERELDEN HIZLI. Yerel modeli sohbette
+    tutmanın tek gerekçesi ücretsiz olmasıydı; soru başına 0,05 birim ve
+    günlük 25 birim sınırla bu gerekçe zayıf.
+
+    ``stream-json`` + ``--include-partial-messages`` kullanıyoruz: normal
+    json çıktısı yanıtın tamamını bekletiyor ve cümle cümle seslendirmenin
+    kazandırdığı her şeyi geri veriyordu.
+
+    API ANAHTARI KULLANILMIYOR — ``dispatch.abonelik_ortami()`` ortamdaki
+    anahtarları temizliyor, CLI abonelik oturumuyla çalışıyor.
+    """
+    import dispatch
+
+    model = model or store.ayar("sohbet_claude_modeli", "sonnet")
+    istem = "\n\n".join(m.get("content", "") for m in mesajlar)
+    if sistem:
+        istem = sistem + "\n\n" + istem
+
+    argv = [dispatch.CLAUDE_BIN, "-p",
+            "--output-format", "stream-json",
+            "--include-partial-messages", "--verbose",
+            "--model", model]
+
+    tampon = ""
+    maliyet = 0.0
+    p = None
+    try:
+        p = subprocess.Popen(
+            argv, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL, text=True,
+            encoding="utf-8", errors="replace",
+            env=dispatch.abonelik_ortami())
+        # Windows'ta prompt argüman olarak değil stdin'den; .CMD sarmalayıcısı
+        # çok satırlı metni bölüyor (bkz. dispatch._komut_kur).
+        p.stdin.write(istem)
+        p.stdin.close()
+
+        for satir in p.stdout:
+            satir = satir.strip()
+            if not satir:
+                continue
+            try:
+                d = json.loads(satir)
+            except ValueError:
+                continue
+            if d.get("type") == "stream_event":
+                ev = d.get("event") or {}
+                if ev.get("type") == "content_block_delta":
+                    tampon += (ev.get("delta") or {}).get("text") or ""
+                    while (m := _CUMLE_SONU.search(tampon)):
+                        kes = m.end()
+                        parca = tampon[:kes].strip()
+                        tampon = tampon[kes:]
+                        if parca:
+                            yield parca
+            elif d.get("type") == "result":
+                maliyet = d.get("total_cost_usd") or 0.0
+                if not tampon and not d.get("result"):
+                    continue
+                # Akış hiç parça vermediyse (eski CLI) sonucu buradan al.
+                if d.get("result") and not d.get("is_error"):
+                    tampon = tampon or str(d["result"])
+    except (OSError, subprocess.SubprocessError) as e:
+        if not tampon:
+            raise RuntimeError(f"claude çalıştırılamadı: {e}") from e
+    finally:
+        if p is not None:
+            try:
+                p.wait(timeout=10)
+            except subprocess.TimeoutExpired:
+                p.kill()
+
+    if (kalan := tampon.strip()):
+        yield kalan
+
+    # Kotayı takip edebilmek için harcamayı kaydet. Kullanıcının koyduğu
+    # günlük fren buna bakıyor; sohbet harcaması görünmezse fren çalışmaz.
+    if maliyet:
+        try:
+            store.sohbet_maliyeti_yaz(model, maliyet)
+        except Exception:
+            pass
+
+
 def promptu_detaylandir(ham: str, brifing: str, model: str | None = None) -> str:
     """Kullanıcının kısa isteğini ayrıntılı göreve çevir (yerel model, ücretsiz)."""
     model = model or store.ayar("taslak_modeli", "qwen3.5:9b-tr")

@@ -376,6 +376,11 @@ VARSAYILAN_AYARLAR = {
     "ses_motoru": "klon",            # klon | edge (edge yalnizca yedek)
     "ses_adlari": '{"ses1": "Kalın", "ses2": "Orta", "ses3": "İnce", "referans": "Hareketli"}',
     "klon_referans": "ses1",         # klon motorunda kullanilacak ses
+    # Sohbeti kim yanıtlıyor. Ölçüm: yerel 4B ilk cümleyi 16,8 sn'de ve
+    # yanlış veriyor; claude sonnet 6,6 sn'de ve doğru. Yerel yalnızca
+    # yedek — claude'a ulaşılamazsa ya da günlük sınır dolarsa.
+    "sohbet_saglayici": "claude",       # claude | yerel
+    "sohbet_claude_modeli": "sonnet",   # sonnet | opus | haiku
     "ara_ses": "1",                  # konusma bitince kisa "seni duydum" sesi
 }
 
@@ -506,6 +511,23 @@ def proje_birlestir(kaynak_id: int, hedef_id: int) -> None:
 def proje_yol_yaz(pid: int, yeni_yol: str) -> None:
     c = _conn()
     c.execute("UPDATE projeler SET yol=? WHERE id=?", (yeni_yol, pid))
+    c.commit()
+
+
+def sohbet_maliyeti_yaz(model: str, maliyet: float) -> None:
+    """Sohbetin abonelik kotasından tükettiğini eylem günlüğüne yaz.
+
+    Günlük kullanım freni ``eylemler`` tablosuna bakıyor. Sohbet Claude'a
+    taşındığında harcama oradan görünmezse fren çalışmaz ve kota sessizce
+    tükenir.
+    """
+    c = _conn()
+    simdi = time.time()
+    c.execute(
+        "INSERT INTO eylemler (proje_id, proje_yol, komut, model, durum, "
+        "baslangic, bitis, maliyet) VALUES (NULL, '', ?, ?, 'tamam', ?, ?, ?)",
+        ("[sohbet]", model, simdi, simdi, maliyet),
+    )
     c.commit()
 
 

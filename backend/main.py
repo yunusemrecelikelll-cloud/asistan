@@ -680,12 +680,13 @@ def _sohbet_baglami(metin: str) -> str:
 
 
 def _sohbet_yaniti(metin: str) -> str:
-    """Durum sorularını ve sohbeti yerel modelle yanıtla."""
+    """Durum sorularını ve sohbeti yanıtla — akışsız yol.
+
+    Akışlı yolla aynı sağlayıcıyı kullanıyor; iki yerde iki farklı model
+    olması, aynı soruya arayüzden ve sesten farklı cevap gelmesi demekti.
+    """
     try:
-        istem = _sohbet_baglami(metin)
-        return brain.yerel_sohbet([{"role": "user", "content": istem}],
-                                  sistem=SOHBET_TALIMATI,
-                                  azami_token=350).strip()
+        return " ".join(sohbet_akisi(metin)).strip() or "Şu an yanıt üretemedim."
     except Exception:
         return "Şu an yanıt üretemedim."
 
@@ -695,40 +696,54 @@ def sohbet_akisi(metin: str):
 
     Kaydı çağıran tarafa bırakıyoruz: cümleler bittiğinde tam metin elde
     oluyor, mesaj geçmişine bir kez yazılıyor.
-    """
-    import dogal
 
-    # İşaret kuralları BİLEREK eklenmiyor.
-    #
-    # Cümleyi üretirken bir yandan da bürünsel işaret serpiştirmek 4B'lik
-    # bir modele fazla geliyor ve cevabın kendisi bozuluyor. Ölçüldü, aynı
-    # soruya iki yanıt:
-    #
-    #   işaretsiz : "Aktif projelerin Asistan, WhatsApp Mesajları
-    #                Uygulaması, CV Oluşturucu…"
-    #   işaretli  : "[İlker] Bugün 3 adet kritik [kacirildi] iş var ve
-    #                hepsini bitti."
-    #
-    # İşaretli sürüm olmayan işaretler uyduruyor ([İlker] bir isim, [20],
-    # [durun]), iç durum etiketini sese sızdırıyor ve dilbilgisini
-    # bozuyor. Doğruluk, büründen önce gelir.
-    #
-    # Kayıp yok: tempo ve perde değişimini dogal.parcala zaten kendi
-    # yapıyor ve modülün kendi notunun dediği gibi "asıl insanlık hissi
-    # tempo değişiminden geliyor". İşaretler yalnızca [dusun]/[gul] gibi
-    # süslerdi.
+    HANGİ MODEL — ölçümle karar verildi. Aynı bağlam, aynı soru
+    ("bu hafta neye öncelik vermeliyim, neden?"):
+
+        yerel qwen3.5:4b-tr   ilk cümle 16,8 sn — cevap yanlış, veriyi
+                              görmezden gelip uyduruyor
+        claude sonnet          ilk cümle  6,6 sn — 0,050 birim
+        claude opus            ilk cümle  7,3 sn — 0,142 birim
+
+    Yerel model hem yavaş hem yanlıştı; onu sohbette tutmanın tek gerekçesi
+    ücretsiz olmasıydı. Soru başına 0,05 birim ve günlük 25 birimlik fren
+    ile bu gerekçe zayıf: günde ~500 soru demek.
+
+    Yerel model YEDEK olarak duruyor. Claude'a ulaşılamazsa ya da günlük
+    sınır dolduysa sohbet susmuyor, yerelden devam ediyor — kötü cevap,
+    cevapsızlıktan iyidir.
+    """
+    import brain
+    import dispatch
+
+    istem = _sohbet_baglami(metin)
+    saglayici = store.ayar("sohbet_saglayici", "claude")
+
+    if saglayici == "claude" and dispatch.CLAUDE_BIN:
+        if dispatch.limit_durumu()["asildi"]:
+            gunluk.uyari("sohbet", "limit", "günlük sınır doldu, yerele düşülüyor")
+        else:
+            verildi = False
+            try:
+                for c in brain.claude_sohbet_akis(
+                        [{"role": "user", "content": istem}],
+                        sistem=SOHBET_TALIMATI):
+                    verildi = True
+                    yield c
+                if verildi:
+                    return
+                gunluk.uyari("sohbet", "bos", "claude boş döndü, yerele düşülüyor")
+            except Exception as e:
+                # Yanıtın bir kısmı gittiyse yarıda kesip yerelden baştan
+                # başlamak kullanıcıya iki farklı cevap duyurur; yalnızca
+                # HİÇ parça gitmediyse yedeğe düşüyoruz.
+                gunluk.hata("sohbet", "claude", istisna=e)
+                if verildi:
+                    return
+
     yield from brain.yerel_sohbet_akis(
-        [{"role": "user", "content": _sohbet_baglami(metin)}],
+        [{"role": "user", "content": istem}],
         sistem=SOHBET_TALIMATI, azami_token=350)
-
-
-@app.post("/api/taslak")
-def taslak_olustur(istek: TaslakIstek) -> dict:
-    """Kullanıcının mesajını ayrıntılı göreve çevir ve ONAYA sun.
-
-    Hiçbir şey gönderilmez; kullanıcı onaylayana kadar bekler.
-    """
-    return taslak_uret(istek)
 
 
 def taslak_uret(istek: TaslakIstek, hazir_niyet: dict | None = None) -> dict:
