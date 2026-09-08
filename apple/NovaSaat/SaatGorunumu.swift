@@ -72,6 +72,9 @@ struct SaatGorunumu: View {
             } else if oturum.hal == .konusuyor {
                 oturum.sustur()
             } else {
+                // Ekran konuşmanın ortasında sönmesin. Kayıt bitince
+                // oturum kapanıyor (aşağıdaki onChange).
+                EkranAcik.ortak.basla()
                 oturum.dinlemeyeBasla()
             }
         } label: {
@@ -82,6 +85,12 @@ struct SaatGorunumu: View {
         .buttonStyle(.borderedProminent)
         .tint(dugmeRengi)
         .disabled(!oturum.bagli)
+        .onChange(of: oturum.hal) { _, yeni in
+            // Tur bittiğinde bırak: uzatılmış oturumu gereğinden uzun
+            // tutmak saatin pilini yer. Nova konuşurken de açık kalıyor,
+            // çünkü kullanıcı cevabı ekranda okuyor olabilir.
+            if yeni == .bekliyor { EkranAcik.ortak.bitir() }
+        }
     }
 
     private var dugmeYazisi: String {

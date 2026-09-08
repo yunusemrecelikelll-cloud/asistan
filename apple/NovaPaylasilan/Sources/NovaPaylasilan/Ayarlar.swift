@@ -30,16 +30,22 @@ public final class Ayarlar {
         set { d.set(newValue, forKey: "nova.yerel") }
     }
 
-    public var wsAdresi: URL? { adres(sunucu, yol: "/ws") }
-    public var yerelWsAdresi: URL? { adres(yerelSunucu, yol: "/ws") }
+    public var wsAdresi: URL? { adres(sunucu, sema: "ws", yol: "/ws") }
+    public var yerelWsAdresi: URL? { adres(yerelSunucu, sema: "ws", yol: "/ws") }
 
-    private func adres(_ konak: String, yol: String) -> URL? {
+    /// Plan, proje ve yaşam listeleri HTTP'den okunuyor; sesli tur ise
+    /// kalıcı soketten. Aynı konak, farklı şema.
+    public var httpAdresi: URL? { adres(sunucu, sema: "http", yol: "/") }
+    public var yerelHttpAdresi: URL? { adres(yerelSunucu, sema: "http", yol: "/") }
+
+    private func adres(_ konak: String, sema: String, yol: String) -> URL? {
         guard !konak.isEmpty else { return nil }
         let temiz = konak
             .replacingOccurrences(of: "http://", with: "")
             .replacingOccurrences(of: "https://", with: "")
+            .replacingOccurrences(of: "ws://", with: "")
             .trimmingCharacters(in: .whitespaces)
-        return URL(string: "ws://\(temiz)\(yol)")
+        return URL(string: "\(sema)://\(temiz)\(yol)")
     }
 
     // MARK: - Keychain

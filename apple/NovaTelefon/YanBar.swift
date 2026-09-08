@@ -15,13 +15,35 @@ struct YanBar: View {
     var body: some View {
         NavigationStack {
             List {
+                // Plan, projeler ve yaşam GERÇEK ekran. Eskiden bunlar da
+                // hazır soruydu: bölüme dokununca sohbete bir cümle
+                // gidiyor, cevabı model yazıyordu. Yani kullanıcı kendi
+                // planını göremiyor, ancak modelin anlattığı kadarını
+                // duyabiliyordu — ve model yanılabiliyordu. Veriyi
+                // doğrudan göstermek hem doğru hem de dokunulabilir.
                 Section("Nova") {
-                    satir("Bugün", "calendar", "bugün ne var")
-                    satir("Plan", "list.bullet.rectangle", "planım ne")
-                    satir("Projeler", "folder", "projelerim nasıl gidiyor")
+                    NavigationLink {
+                        PlanGorunumu()
+                    } label: {
+                        Label("Plan", systemImage: "list.bullet.rectangle")
+                    }
+                    NavigationLink {
+                        ProjelerGorunumu()
+                    } label: {
+                        Label("Projeler", systemImage: "folder")
+                    }
+                    NavigationLink {
+                        YasamGorunumu()
+                    } label: {
+                        Label("Yaşam", systemImage: "heart")
+                    }
+                }
+
+                // Bunların henüz ekranı yok; soru olarak duruyorlar.
+                Section("Sor") {
                     satir("Atölye", "printer", "yazıcılar ne durumda")
-                    satir("Yaşam", "heart", "bugünkü yaşam kaydım ne")
                     satir("Koç", "figure.run", "koç yorumu yap")
+                    satir("Rapor", "chart.bar", "genel durum raporu ver")
                 }
 
                 Section("Bağlantı") {
@@ -73,7 +95,10 @@ struct AyarGorunumu: View {
     @EnvironmentObject private var oturum: Oturum
     @State private var yerel = Ayarlar.ortak.yerelSunucu
     @State private var uzak = Ayarlar.ortak.sunucu
-    @State private var belirtec = Ayarlar.ortak.belirtec
+    @State private var parola = ""
+    @State private var kaydediyor = false
+    @State private var sonuc: String?
+    @State private var bekleyenBildirim = 0
 
     var body: some View {
         Form {
@@ -99,19 +124,82 @@ struct AyarGorunumu: View {
                      + "ulaşılamazsa buraya düşülüyor.")
             }
 
-            Section("Parola") {
-                SecureField("Sunucu parolası", text: $belirtec)
+            Section {
+                SecureField("Sunucu parolası", text: $parola)
+            } header: {
+                Text("Parola")
+            } footer: {
+                Text(Ayarlar.ortak.belirtec.isEmpty
+                     ? "telefon.ps1 çalıştırınca yazdırılıyor."
+                     : "Kayıtlı. Değiştirmek için yenisini yaz.")
             }
 
             Section {
-                Button("Kaydet ve yeniden bağlan") {
-                    Ayarlar.ortak.yerelSunucu = yerel
-                    Ayarlar.ortak.sunucu = uzak
-                    Ayarlar.ortak.belirtec = belirtec
-                    oturum.basla()
+                LabeledContent("Kurulu bildirim",
+                               value: "\(bekleyenBildirim)")
+                Text("Görevlerden 15 dakika önce, tam saatinde ve "
+                     + "başlamadıysan 10 dakika sonra dürtülüyorsun.")
+                    .font(.caption).foregroundStyle(.secondary)
+            } header: {
+                Text("Bildirimler")
+            }
+
+            Section {
+                Button(kaydediyor ? "Bağlanıyor…" : "Kaydet ve yeniden bağlan") {
+                    Task { await kaydet() }
+                }
+                .disabled(kaydediyor)
+                if let sonuc {
+                    Text(sonuc).font(.footnote)
+                        .foregroundStyle(sonuc.hasPrefix("Bağlandı")
+                                         ? .green : .red)
                 }
             }
         }
+        .task { bekleyenBildirim = await Bildirimler.ortak.bekleyenSayisi() }
         .navigationTitle("Ayarlar")
+    }
+
+    /// Adresleri yaz, parolayı belirtece çevir ve bağlantıyı GERÇEKTEN
+    /// doğrula.
+    ///
+    /// "Kaydedildi" demek yetmiyor: yanlış adres ya da yanlış parola
+    /// girildiğinde kullanıcı bunu ancak konuşmaya çalışınca anlıyordu.
+    /// Kaydettikten sonra bir istek atıp sonucu burada söylüyoruz.
+    private func kaydet() async {
+        kaydediyor = true
+        defer { kaydediyor = false }
+
+        Ayarlar.ortak.yerelSunucu = yerel.trimmingCharacters(in: .whitespaces)
+        Ayarlar.ortak.sunucu = uzak.trimmingCharacters(in: .whitespaces)
+
+        let p = parola.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !p.isEmpty {
+            do {
+                // 64 karakterlik belirteci doğrudan yapıştırmış olabilir
+                // (eski sürümde tek yol buydu); o zaman takas gerekmiyor.
+                if p.count == 64, p.allSatisfy(\.isHexDigit) {
+                    Ayarlar.ortak.belirtec = p
+                } else {
+                    Ayarlar.ortak.belirtec =
+                        try await Api.ortak.girisYap(parola: p)
+                }
+                parola = ""
+            } catch {
+                sonuc = (error as? Api.Hata)?.errorDescription
+                    ?? error.localizedDescription
+                return
+            }
+        }
+
+        do {
+            _ = try await Api.ortak.bugun()
+            oturum.basla()
+            sonuc = "Bağlandı."
+            bekleyenBildirim = await Bildirimler.ortak.bekleyenSayisi()
+        } catch {
+            sonuc = (error as? Api.Hata)?.errorDescription
+                ?? error.localizedDescription
+        }
     }
 }

@@ -457,6 +457,58 @@ def tum_ayarlar() -> dict[str, str]:
 # ── projeler ───────────────────────────────────────────────────────────────
 
 
+# Projeye bağlı tablolar. gorevler/taslaklar/bildirimler ON DELETE CASCADE
+# olduğu için bir proje satırını silmeden ÖNCE çocukları taşınmalı; yoksa
+# kullanıcının görevleri de silinir.
+_PROJE_COCUKLARI = ("mesajlar", "eylemler", "taslaklar", "gorevler",
+                    "bildirimler", "baskilar", "baski_dosyalari")
+
+# Kullanıcının doldurduğu, keşiften gelmeyen alanlar.
+_KULLANICI_ALANLARI = ("etiket", "not_metni", "ozet", "ozet_zaman", "tur",
+                       "durum", "hedef_tarih", "oncelik", "ayar_json",
+                       "otomatik", "oto_aralik", "oto_azami")
+
+
+def proje_birlestir(kaynak_id: int, hedef_id: int) -> None:
+    """``kaynak`` projesini ``hedef``e kat ve kaynağı sil.
+
+    Aynı klasörün iki kaydı oluştuğunda (Windows'ta yol harf büyüklüğüne
+    duyarsız ama sütun birincil anahtar) çağrılıyor. Çocuk satırlar önce
+    taşınıyor: silme CASCADE olduğu için tersi görev kaybı demek.
+    """
+    if kaynak_id == hedef_id:
+        return
+    c = _conn()
+    for t in _PROJE_COCUKLARI:
+        try:
+            c.execute(f"UPDATE {t} SET proje_id=? WHERE proje_id=?",
+                      (hedef_id, kaynak_id))
+        except sqlite3.OperationalError:
+            pass            # tablo yoksa (eski veritabanı) atla
+    # Hedefte boş olan kullanıcı alanlarını kaynaktan doldur.
+    k = c.execute("SELECT * FROM projeler WHERE id=?", (kaynak_id,)).fetchone()
+    h = c.execute("SELECT * FROM projeler WHERE id=?", (hedef_id,)).fetchone()
+    if k and h:
+        for alan in _KULLANICI_ALANLARI:
+            if alan in k.keys() and not h[alan] and k[alan]:
+                c.execute(f"UPDATE projeler SET {alan}=? WHERE id=?",
+                          (k[alan], hedef_id))
+        if not h["son_session_id"] and k["son_session_id"]:
+            c.execute("UPDATE projeler SET son_session_id=? WHERE id=?",
+                      (k["son_session_id"], hedef_id))
+        if (k["oturum_sayisi"] or 0) > (h["oturum_sayisi"] or 0):
+            c.execute("UPDATE projeler SET oturum_sayisi=? WHERE id=?",
+                      (k["oturum_sayisi"], hedef_id))
+    c.execute("DELETE FROM projeler WHERE id=?", (kaynak_id,))
+    c.commit()
+
+
+def proje_yol_yaz(pid: int, yeni_yol: str) -> None:
+    c = _conn()
+    c.execute("UPDATE projeler SET yol=? WHERE id=?", (yeni_yol, pid))
+    c.commit()
+
+
 def proje_kaydet(p: dict[str, Any]) -> int:
     """Yolu anahtar alarak ekle/güncelle. Kullanıcı notu ve etiketi korunur."""
     c = _conn()

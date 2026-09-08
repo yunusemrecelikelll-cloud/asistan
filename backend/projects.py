@@ -33,9 +33,59 @@ DISLANAN_PARCALAR = (
 )
 
 
+def _kok_dizinler() -> set[str]:
+    """Proje OLMAYAN ama içinde claude çalıştırılmış olabilen yerler.
+
+    Ev dizini ve Masaüstü'nün kendisi listeye "PC" ve "Desktop" adlı iki
+    proje olarak düşüyordu. Bunlar sohbet bağlamına da giriyor ve modele
+    var olmayan projeler saydırıyordu.
+    """
+    ev = Path.home()
+    return {_anahtar(str(p)) for p in (
+        ev, ev / "Desktop", ev / "Documents", ev / "Downloads",
+        Path(ev.anchor) if ev.anchor else ev,
+    )}
+
+
+def _anahtar(yol: str) -> str:
+    """Karşılaştırma için tekilleştirilmiş yol.
+
+    Windows'ta yollar harf büyüklüğüne duyarsız ama veritabanında yol
+    birincil anahtar. "c:\\...\\Asistan" ile "C:\\...\\Asistan" iki ayrı
+    kayıt oluyordu; liste aynı projeyi iki kez gösteriyordu.
+    """
+    return os.path.normcase(os.path.normpath(yol.replace("/", "\\")))
+
+
+def _duzelt(yol: str) -> str:
+    """Kaydedilecek biçim: normalleştirilmiş, sürücü harfi büyük."""
+    d = os.path.normpath(yol.replace("/", "\\"))
+    if len(d) > 1 and d[1] == ":":
+        d = d[0].upper() + d[1:]
+    return d
+
+
 def _dislanan(yol: str) -> bool:
     d = yol.lower().replace("/", "\\")
-    return any(p in d for p in DISLANAN_PARCALAR)
+    if any(p in d for p in DISLANAN_PARCALAR):
+        return True
+    return _anahtar(yol) in _kok_dizinler()
+
+
+def _ic_ice_ayikla(kayitlar: list[dict]) -> list[dict]:
+    """Başka bir projenin ALTINDA kalan kayıtları at.
+
+    "Asistan\\backend" ayrı bir proje değil, Asistan'ın bir klasörü —
+    orada bir kez claude çalıştırıldığı için listeye girmişti.
+    """
+    anahtarlar = sorted({_anahtar(k["yol"]) for k in kayitlar}, key=len)
+    kalan = []
+    for k in kayitlar:
+        a = _anahtar(k["yol"])
+        ust = any(a != b and a.startswith(b + "\\") for b in anahtarlar)
+        if not ust:
+            kalan.append(k)
+    return kalan
 
 
 def _kodla(yol: str) -> str:
@@ -141,10 +191,46 @@ def _oturum_bilgisi(dizin: Path) -> dict:
     }
 
 
+def yollari_birlestir() -> int:
+    """Aynı klasörün birden çok kaydını tek satıra indir.
+
+    Windows'ta yol harf büyüklüğüne duyarsız ama sütun birincil anahtar;
+    "c:\\...\\Asistan" ile "C:\\...\\Asistan" iki ayrı proje olarak
+    duruyordu ve liste aynı projeyi iki kez gösteriyordu. Sohbet bağlamına
+    da öyle giriyor, model var olmayan projeler sayıyordu.
+    """
+    gruplar: dict[str, list[dict]] = {}
+    for p in store.projeler():
+        if p["harici"]:
+            continue                    # elle eklenmiş, yolu yok
+        gruplar.setdefault(_anahtar(p["yol"]), []).append(dict(p))
+
+    birlesen = 0
+    for anahtar, satirlar in gruplar.items():
+        if len(satirlar) > 1:
+            # Zengin olanı tut: kullanıcı verisi olan, yoksa oturumu çok olan.
+            def puan(r):
+                return (sum(1 for a in ("not_metni", "ozet", "etiket")
+                            if r.get(a)),
+                        r.get("oturum_sayisi") or 0)
+            satirlar.sort(key=puan, reverse=True)
+            hedef = satirlar[0]
+            for kaynak in satirlar[1:]:
+                store.proje_birlestir(kaynak["id"], hedef["id"])
+                birlesen += 1
+        else:
+            hedef = satirlar[0]
+        duzgun = _duzelt(hedef["yol"])
+        if hedef["yol"] != duzgun:
+            store.proje_yol_yaz(hedef["id"], duzgun)
+    return birlesen
+
+
 def kesfet() -> list[dict]:
     """~/.claude/projects tarayıp veritabanını günceller."""
     if not CLAUDE_PROJE_KOK.is_dir():
         return []
+    yollari_birlestir()
 
     bulunan = []
     for dizin in sorted(CLAUDE_PROJE_KOK.iterdir()):
@@ -163,7 +249,7 @@ def kesfet() -> list[dict]:
             continue
 
         kayit = {
-            "yol": str(p),
+            "yol": _duzelt(str(p)),
             "ad": p.name or str(p),
             "claude_dizin": dizin.name,
             "var_mi": 1 if p.is_dir() else 0,
@@ -171,14 +257,36 @@ def kesfet() -> list[dict]:
             "oturum_sayisi": bilgi["oturum_sayisi"],
             "son_session_id": bilgi["son_session_id"],
         }
-        pid = store.proje_kaydet(kayit)
-        kayit["id"] = pid
         kayit["basliklar"] = bilgi["basliklar"]
         bulunan.append(kayit)
 
-    # Artık dışlanan ya da diskten silinmiş kayıtları temizle.
+    # Aynı klasörün iki kaydı olmasın (harf büyüklüğü farkı) ve bir
+    # projenin alt klasörü ayrı proje sayılmasın. Ayıklama KAYITTAN ÖNCE:
+    # veritabanına hiç girmesinler.
+    tekil: dict[str, dict] = {}
+    for k in bulunan:
+        a = _anahtar(k["yol"])
+        eski = tekil.get(a)
+        # Aynı klasörün iki kaydından oturumu çok olanı tut.
+        if not eski or (k["oturum_sayisi"] or 0) > (eski["oturum_sayisi"] or 0):
+            if eski:
+                k["basliklar"] = (eski.get("basliklar") or []) + (
+                    k.get("basliklar") or [])
+            tekil[a] = k
+    bulunan = _ic_ice_ayikla(list(tekil.values()))
+
+    for k in bulunan:
+        k["id"] = store.proje_kaydet(k)
+
+    # Artık dışlanan, iç içe kalan ya da diskten silinmiş kayıtları temizle.
+    gecerli = {_anahtar(k["yol"]) for k in bulunan}
     for p in store.projeler():
-        if _dislanan(p["yol"]):
+        # Elle eklenen projeler keşiften gelmez; onları silmek kullanıcının
+        # kendi kaydını ve ona bağlı görevleri silmek olur (CASCADE).
+        if p["harici"]:
+            continue
+        if _dislanan(p["yol"]) or (
+                p["var_mi"] and _anahtar(p["yol"]) not in gecerli):
             store.proje_sil_yol(p["yol"])
     store.proje_varlik_guncelle({k["yol"] for k in bulunan})
 

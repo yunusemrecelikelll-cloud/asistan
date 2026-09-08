@@ -628,11 +628,28 @@ def sohbet_akisi(metin: str):
     """
     import dogal
 
-    # İşaret kurallarını buraya katıyoruz: cümleler zaten doğallaştırılmış
-    # geliyor, seslendirmeden önce ikinci bir model çağrısı gerekmiyor.
+    # İşaret kuralları BİLEREK eklenmiyor.
+    #
+    # Cümleyi üretirken bir yandan da bürünsel işaret serpiştirmek 4B'lik
+    # bir modele fazla geliyor ve cevabın kendisi bozuluyor. Ölçüldü, aynı
+    # soruya iki yanıt:
+    #
+    #   işaretsiz : "Aktif projelerin Asistan, WhatsApp Mesajları
+    #                Uygulaması, CV Oluşturucu…"
+    #   işaretli  : "[İlker] Bugün 3 adet kritik [kacirildi] iş var ve
+    #                hepsini bitti."
+    #
+    # İşaretli sürüm olmayan işaretler uyduruyor ([İlker] bir isim, [20],
+    # [durun]), iç durum etiketini sese sızdırıyor ve dilbilgisini
+    # bozuyor. Doğruluk, büründen önce gelir.
+    #
+    # Kayıp yok: tempo ve perde değişimini dogal.parcala zaten kendi
+    # yapıyor ve modülün kendi notunun dediği gibi "asıl insanlık hissi
+    # tempo değişiminden geliyor". İşaretler yalnızca [dusun]/[gul] gibi
+    # süslerdi.
     yield from brain.yerel_sohbet_akis(
         [{"role": "user", "content": _sohbet_baglami(metin)}],
-        sistem=SOHBET_TALIMATI + dogal.sesli_ek(), azami_token=350)
+        sistem=SOHBET_TALIMATI, azami_token=350)
 
 
 @app.post("/api/taslak")

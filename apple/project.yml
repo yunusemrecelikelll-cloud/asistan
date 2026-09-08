@@ -138,6 +138,12 @@ targets:
         CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
         CFBundleIconName: AppIcon
         WKApplication: true
+        # Uzatılmış çalışma oturumu (WKExtendedRuntimeSession) bu anahtar
+        # olmadan hiç başlamıyor; konuşurken ekran sönmeye devam eder.
+        # INFOPLIST_KEY_* build ayarıyla YAZILMAZ — hedef kendi plist'ini
+        # verdiği için o ayarlar hiçbir yere ulaşmıyor.
+        WKBackgroundModes:
+          - mindfulness
         WKCompanionAppBundleIdentifier: com.asistan.nova
         # Saat ag ayari tutmuyor ama mikrofonu kendisi kullaniyor.
         NSMicrophoneUsageDescription: >-
