@@ -56,6 +56,13 @@ targets:
       properties:
         CFBundleDisplayName: NOVA
         CFBundleShortVersionString: "$(MARKETING_VERSION)"
+        # CFBundleVersion ACIKCA veriliyor. Verilmezse XcodeGen
+        # bosluga duz "1" yaziyor ve codemagic.yaml'in arsivleme
+        # sirasinda gecirdigi CURRENT_PROJECT_VERSION=<zaman damgasi>
+        # hicbir yere ulasmiyor. Ilk yukleme "1" olarak gitti;
+        # ikincisi TestFlight'ta "duplicate build number" ile
+        # reddedilirdi.
+        CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
         # Ikon: Assets.xcassets/AppIcon. Bu anahtar olmadan App Store
         # yuklemeyi reddediyor (90713).
         CFBundleIconName: AppIcon
@@ -122,6 +129,13 @@ targets:
       properties:
         CFBundleDisplayName: NOVA
         CFBundleShortVersionString: "$(MARKETING_VERSION)"
+        # CFBundleVersion ACIKCA veriliyor. Verilmezse XcodeGen
+        # bosluga duz "1" yaziyor ve codemagic.yaml'in arsivleme
+        # sirasinda gecirdigi CURRENT_PROJECT_VERSION=<zaman damgasi>
+        # hicbir yere ulasmiyor. Ilk yukleme "1" olarak gitti;
+        # ikincisi TestFlight'ta "duplicate build number" ile
+        # reddedilirdi.
+        CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
         CFBundleIconName: AppIcon
         WKApplication: true
         WKCompanionAppBundleIdentifier: com.asistan.nova
