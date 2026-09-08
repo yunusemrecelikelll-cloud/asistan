@@ -49,13 +49,22 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.asistan.nova
         PRODUCT_NAME: NOVA
-        INFOPLIST_KEY_UILaunchScreen_Generation: YES
         TARGETED_DEVICE_FAMILY: "1,2"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
     info:
       path: Uretilen/NovaTelefon-Info.plist
       properties:
         CFBundleDisplayName: NOVA
         CFBundleShortVersionString: "$(MARKETING_VERSION)"
+        # Ikon: Assets.xcassets/AppIcon. Bu anahtar olmadan App Store
+        # yuklemeyi reddediyor (90713).
+        CFBundleIconName: AppIcon
+        # Acilis ekrani. INFOPLIST_KEY_UILaunchScreen_Generation ise
+        # yaramiyor: o ayarlar yalnizca Xcode'un URETTIGI plist'e
+        # isliyor, hedef kendi plist'ini verdigi icin hicbir yere
+        # ulasmiyordu. iPad coklu gorev bunu sart kosuyor (90475).
+        # Bos sozluk = duz renk acilis ekrani.
+        UILaunchScreen: {}
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: false
         UIUserInterfaceStyle: Dark
@@ -90,11 +99,13 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.asistan.nova.watchkitapp
         PRODUCT_NAME: NOVA
         TARGETED_DEVICE_FAMILY: "4"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
     info:
       path: Uretilen/NovaSaat-Info.plist
       properties:
         CFBundleDisplayName: NOVA
         CFBundleShortVersionString: "$(MARKETING_VERSION)"
+        CFBundleIconName: AppIcon
         WKApplication: true
         WKCompanionAppBundleIdentifier: com.asistan.nova
         # Saat ag ayari tutmuyor ama mikrofonu kendisi kullaniyor.
