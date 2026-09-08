@@ -187,23 +187,26 @@ görüldü: derleme sözleşme kabul edilmeden TestFlight'a çıktı.
 
 - `Ic Test` adında iç test grubu kuruldu, **otomatik dağıtım açık** — bundan sonraki her
   Codemagic derlemesi bu gruba kendiliğinden düşecek.
-- Grup: 1 Tester, 1 Build. Derleme durumu **Ready to Test**, 90 günde doluyor.
 - Tester: `yunusemrecelikell@hotmail.com` (Account Holder, Admin). Tester listesinde
   eklenebilecek tek kimlik buydu. **Dikkat: bu hotmail**, App Store Connect oturumundaki
-  gmail değil; davet e-postası oraya gitti.
-
-### Açık kalan tek adım
-
-Tester durumu **"Invited"** — davet henüz kabul edilmedi, o yüzden uygulama telefondaki
-TestFlight'ta listelenmiyor. Telefondaki App Store/TestFlight aynı hotmail Apple ID'siyle
-girili, yani hesap uyuşmazlığı yok. Yapılacak: hotmail kutusundaki (sık sık **spam**'e
-düşüyor) TestFlight davetini telefondan açıp "View in TestFlight" demek.
+  gmail değil; davet e-postası oraya gitti. Davet kabul edildi, uygulama telefonda kullanımda.
 
 Saat uygulaması TestFlight'ta ayrı görünmez; iPhone'a kurulunca Watch'a kendiliğinden
 geçiyor (`WKCompanionAppBundleIdentifier` bağlı).
 
-Not: bu belge yazılırken App Store Connect oturumu düşmüştü (`authResult=FAILED`).
-Daveti yeniden göndermek için tarayıcıda yeniden giriş yapmak gerekiyor.
+### Yüklenen derlemeler
+
+| Sürüm | Build | Durum |
+|---|---|---|
+| 1.0.0 | `1` | İlk yükleme. Build numarası TestFlight'a ulaşmıyordu — `ad1a813` düzeltti. |
+| 1.0.0 | `1788888982` | `processingState VALID`, `internalBuildState IN_BETA_TESTING` |
+
+İkinci derleme: <https://codemagic.io/app/6a9f5dccb1a7e43f6ca8680d/build/6aa0476363c784534c78ab55>
+Hiçbir adım düşmedi, hiç App Store doğrulama hatası çıkmadı. `UPLOAD SUCCEEDED with no errors`.
+
+Build numarası artık `$(CURRENT_PROJECT_VERSION)` üzerinden Unix zaman damgası alıyor;
+`1.0.0 (1)` → `1.0.0 (1788888982)`. **TestFlight build numarasını düşüremiyor** — ileride
+sabit bir sayıya dönülecekse damganın üstünden devam etmek gerekir.
 
 ---
 
