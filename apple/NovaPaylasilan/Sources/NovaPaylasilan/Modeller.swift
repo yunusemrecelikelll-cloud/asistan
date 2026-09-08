@@ -422,3 +422,50 @@ public enum Bicim {
         return c.string(from: d)
     }
 }
+
+// MARK: - Ses ve model seçimi
+
+public struct Ses: Decodable, Identifiable, Equatable, Sendable {
+    public let anahtar: String
+    public let ad: String
+    /// Bu ses için ara ses klipleri (selamlaşma, "hmm") üretilmiş mi.
+    public let hazir: EsnekBool?
+
+    public var id: String { anahtar }
+    public var hazirMi: Bool { hazir.deger(false) }
+}
+
+public struct SesDurumu: Decodable, Equatable, Sendable {
+    public let sesler: [Ses]
+    public let secili: String?
+    /// Klon servisi ayakta mı. Kapalıysa sunucu hazır sese düşüyor.
+    public let servis: EsnekBool?
+    public let motor: String?
+
+    public var servisAcik: Bool { servis.deger(false) }
+}
+
+/// Günlük kullanım sınırı. Tutarlar Claude aboneliğinde faturaya
+/// dönüşmüyor; kaçak bir döngü kotayı tüketmesin diye var.
+public struct Limit: Decodable, Equatable, Sendable {
+    public let limit: Double?
+    public let harcanan: Double?
+    public let kalan: Double?
+    public let asildi: EsnekBool?
+}
+
+public struct SunucuAyarlari: Decodable, Equatable, Sendable {
+    public let ayarlar: [String: String]
+    public let claudeModelleri: [String]?
+    public let limit: Limit?
+
+    enum CodingKeys: String, CodingKey {
+        case ayarlar, limit
+        case claudeModelleri = "claude_modelleri"
+    }
+
+    public func deger(_ anahtar: String, _ varsayilan: String) -> String {
+        let d = ayarlar[anahtar] ?? ""
+        return d.isEmpty ? varsayilan : d
+    }
+}

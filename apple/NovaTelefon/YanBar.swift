@@ -138,6 +138,9 @@ struct AyarGorunumu: View {
                      : "Kayıtlı. Değiştirmek için yenisini yaz.")
             }
 
+            SesAyarBolumu()
+            ModelAyarBolumu()
+
             Section {
                 LabeledContent("Kurulu bildirim",
                                value: "\(bekleyenBildirim)")

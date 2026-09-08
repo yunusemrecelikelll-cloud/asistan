@@ -51,8 +51,12 @@ public actor Api {
 
     // MARK: - Ham istek
 
+    /// - Parameter zamanAsimi: Varsayılan 12 sn kısa isteklere göre. Ses
+    ///   örneği sentezlemek gibi uzun süren uçlar bunu uzatıyor; yoksa
+    ///   sunucu daha cevabı üretmeden istek düşüyor.
     private func istek(_ yol: String, metot: String = "GET",
-                       govde: Data? = nil) async throws -> Data {
+                       govde: Data? = nil,
+                       zamanAsimi: TimeInterval? = nil) async throws -> Data {
         let hedefler = adresler()
         guard !hedefler.isEmpty else { throw Hata.adresYok }
 
@@ -61,6 +65,7 @@ public actor Api {
             var r = URLRequest(url: taban.appendingPathComponent(yol))
             r.httpMethod = metot
             r.httpBody = govde
+            if let zamanAsimi { r.timeoutInterval = zamanAsimi }
             if govde != nil {
                 r.setValue("application/json", forHTTPHeaderField: "Content-Type")
             }
@@ -248,5 +253,45 @@ public actor Api {
 
     public func rapor() async throws -> Rapor {
         try await coz(Rapor.self, "api/rapor")
+    }
+
+    // MARK: - Ses
+
+    public func sesDurum() async throws -> SesDurumu {
+        try await coz(SesDurumu.self, "api/ses/durum")
+    }
+
+    @discardableResult
+    public func sesSec(_ anahtar: String) async throws -> Data {
+        let g = try JSONEncoder().encode(["anahtar": anahtar])
+        return try await istek("api/ses/sec", metot: "POST", govde: g)
+    }
+
+    @discardableResult
+    public func sesAd(_ anahtar: String, ad: String) async throws -> Data {
+        let g = try JSONEncoder().encode(["anahtar": anahtar, "ad": ad])
+        return try await istek("api/ses/ad", metot: "POST", govde: g)
+    }
+
+    /// Örnek cümleyi bu sesle seslendir — seçmeden önce dinlemek için.
+    /// WAV verisi döner.
+    ///
+    /// Sentez saniyeler sürebiliyor, o yüzden zaman aşımı uzun.
+    public func sesDene(_ anahtar: String) async throws -> Data {
+        let g = try JSONEncoder().encode(["referans": anahtar])
+        return try await istek("api/ses/dene", metot: "POST", govde: g,
+                               zamanAsimi: 45)
+    }
+
+    // MARK: - Sunucu ayarları
+
+    public func sunucuAyarlari() async throws -> SunucuAyarlari {
+        try await coz(SunucuAyarlari.self, "api/ayarlar")
+    }
+
+    @discardableResult
+    public func ayarYaz(_ anahtar: String, _ deger: String) async throws -> Data {
+        let g = try JSONEncoder().encode(["anahtar": anahtar, "deger": deger])
+        return try await istek("api/ayarlar", metot: "POST", govde: g)
     }
 }
