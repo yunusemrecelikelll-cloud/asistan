@@ -65,6 +65,23 @@ targets:
         # ulasmiyordu. iPad coklu gorev bunu sart kosuyor (90475).
         # Bos sozluk = duz renk acilis ekrani.
         UILaunchScreen: {}
+        # Yon destegi. Bu da INFOPLIST_KEY_* ile gelmiyor, ayni sebeple.
+        # Telefonda bugunku davranis neyse o: dik + iki yan.
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        # iPad coklu gorev DORDUNU birden sart kosuyor (90474).
+        UISupportedInterfaceOrientations~ipad:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        # Uygulamada ozel sifreleme yok; yalnizca Keychain (SecItem*) ve
+        # isletim sisteminin kendi TLS'i kullaniliyor, ikisi de muaf.
+        # Bu anahtar olmadan her yukleme TestFlight'ta "Missing
+        # Compliance" diye bekliyor ve elle cevaplamak gerekiyor.
+        ITSAppUsesNonExemptEncryption: false
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: false
         UIUserInterfaceStyle: Dark
