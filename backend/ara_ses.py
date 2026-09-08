@@ -374,6 +374,32 @@ def hazirla(zorla: bool = False) -> dict:
     return d
 
 
+def durum() -> dict:
+    """Hazır klipler bu ses için üretilmiş mi?
+
+    Telefon ses değiştirdiğinde kliplerin hazır olmasını bekliyor. Bitişi
+    bildiren bir uç olmadığı için sabit süre tahmin ediyordu; üretim
+    makineye göre 25-60 saniye arasında değişiyor, yani tahmin ya erken
+    kalkıyor ya boşuna bekletiyor. Burada gerçeği söylüyoruz.
+    """
+    kimlik = _ses_kimligi()
+    klasor = KOK / kimlik
+    beklenen = sum(len(v) for v in HAVUZLAR.values())
+    var = 0
+    if klasor.is_dir():
+        var = sum(1 for p in klasor.iterdir()
+                  if p.suffix in (".wav", ".mp3") and p.stat().st_size > 128)
+    return {
+        "ses": kimlik,
+        "hazir": var >= beklenen,
+        "uretilen": var,
+        "beklenen": beklenen,
+        # Üretim sürerken sec() sessizce boş dönüyor; tur bozulmuyor,
+        # yalnızca hazır cevap devreye girmiyor.
+        "yuzde": round(100 * var / beklenen) if beklenen else 100,
+    }
+
+
 def _yukle(kimlik: str) -> dict[str, tuple[bytes, str, str]]:
     """Bu sesin bütün kliplerini belleğe al: ad -> (veri, mime, metin)."""
     klasor = KOK / kimlik

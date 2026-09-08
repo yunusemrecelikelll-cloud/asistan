@@ -1870,6 +1870,14 @@ def _ara_ses_yenile() -> None:
         gunluk.hata("sunucu", "ara_ses_yenile", istisna=e)
 
 
+@app.get("/api/ara-ses/durum")
+def ara_ses_durum() -> dict:
+    """Hazır klipler bu ses için üretildi mi — telefon bunu yokluyor."""
+    import ara_ses
+
+    return ara_ses.durum()
+
+
 @app.post("/api/ara-ses/yenile")
 def ara_ses_yenile(zorla: bool = False) -> dict:
     """Ara ses kliplerini yeniden uret. Ses degisince kendiliginden olur."""
