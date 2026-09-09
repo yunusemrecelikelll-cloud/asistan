@@ -108,11 +108,22 @@ targets:
         # Tailscale ise CGNAT araligini kullaniyor (100.64.0.0/10) ve o
         # aralik "local networking" sayilmiyor. Sonuc: uygulama ev aginda
         # calisiyor, LTE'de "App Transport Security policy requires the use
-        # of a secure connection" ile bagalanamiyor.
+        # of a secure connection" ile baglanamiyor.
         #
-        # NSAllowsArbitraryLoads her adresi aciyor. Gerekce: uygulama
-        # yalnizca kullanicinin KENDI sunucusuna, kendi tailnet'i uzerinden
-        # baglaniyor; tailnet kapali bir ag ve sunucu ayrica parola istiyor.
+        # SADECE NSAllowsArbitraryLoads — YANINA BASKA ANAHTAR YAZMA.
+        # Apple'in kurali: NSAllowsArbitraryLoads, su ucundan HERHANGI BIRI
+        # Info.plist'te varsa iOS 10 ve sonrasinda YOK SAYILIR ve varsayilan
+        # NO kullanilir:
+        #     NSAllowsArbitraryLoadsForMedia
+        #     NSAllowsArbitraryLoadsInWebContent
+        #     NSAllowsLocalNetworking
+        # Yani ikisini birlikte yazmak ArbitraryLoads'u kendi kendine iptal
+        # ediyor; ilk denemede tam olarak bu oldu ve hicbir sey degismedi.
+        # ArbitraryLoads zaten yerel ag dahil her adresi kapsiyor.
+        #
+        # Gerekce: uygulama yalnizca kullanicinin KENDI sunucusuna, kendi
+        # tailnet'i uzerinden baglaniyor; tailnet kapali bir ag ve sunucu
+        # ayrica parola istiyor.
         #
         # Daha temizi Tailscale'in ucretsiz TLS sertifikasiyla sunucuyu
         # https:// ve wss:// uzerinden yayinlamak; o zaman bu istisnaya hic
@@ -120,9 +131,6 @@ targets:
         # Certificates'i acmasi gerektigi icin simdilik istisna.
         NSAppTransportSecurity:
           NSAllowsArbitraryLoads: true
-          # Yeni surumlerde ArbitraryLoads varken bu yok sayiliyor; eski
-          # surumler icin zararsiz, birakiliyor.
-          NSAllowsLocalNetworking: true
         # Telefon cebe girince Nova susmasin.
         UIBackgroundModes:
           - audio
