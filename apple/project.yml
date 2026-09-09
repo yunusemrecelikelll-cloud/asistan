@@ -100,8 +100,28 @@ targets:
           Ev ağındaki bilgisayarında çalışan Nova sunucusuna bağlanmak için.
         NSBonjourServices:
           - _http._tcp
-        # Baglanti ws:// — yerel ag ve Tailscale, ikisi de ozel ag.
+        # Baglanti http:// ve ws:// — yerel ag ve Tailscale, ikisi de ozel ag.
+        #
+        # NSAllowsLocalNetworking TEK BASINA YETMIYOR. O anahtar yalnizca
+        # niteliksiz konak adlarini, .local'i ve link-local adresleri
+        # (169.254/16, fe80::/10) kapsiyor; pratikte 192.168.x de giriyor.
+        # Tailscale ise CGNAT araligini kullaniyor (100.64.0.0/10) ve o
+        # aralik "local networking" sayilmiyor. Sonuc: uygulama ev aginda
+        # calisiyor, LTE'de "App Transport Security policy requires the use
+        # of a secure connection" ile bagalanamiyor.
+        #
+        # NSAllowsArbitraryLoads her adresi aciyor. Gerekce: uygulama
+        # yalnizca kullanicinin KENDI sunucusuna, kendi tailnet'i uzerinden
+        # baglaniyor; tailnet kapali bir ag ve sunucu ayrica parola istiyor.
+        #
+        # Daha temizi Tailscale'in ucretsiz TLS sertifikasiyla sunucuyu
+        # https:// ve wss:// uzerinden yayinlamak; o zaman bu istisnaya hic
+        # gerek kalmiyor. Kullanicinin Tailscale panelinden HTTPS
+        # Certificates'i acmasi gerektigi icin simdilik istisna.
         NSAppTransportSecurity:
+          NSAllowsArbitraryLoads: true
+          # Yeni surumlerde ArbitraryLoads varken bu yok sayiliyor; eski
+          # surumler icin zararsiz, birakiliyor.
           NSAllowsLocalNetworking: true
         # Telefon cebe girince Nova susmasin.
         UIBackgroundModes:
